@@ -154,18 +154,18 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
   function makeIsland(size: number): { group: THREE.Group; topY: number } {
     const g = new THREE.Group();
     // 岩石主体：向下拉长的有机岩石
-    const soil = new THREE.Mesh(makeRock(0.98 * size, 2, 0.16, 1.6), mat(0x322d29));
+    const soil = new THREE.Mesh(makeRock(0.98 * size, 3, 0.1, 1.6), mat(0x322d29));
     soil.position.y = -0.52 * size;
     soil.castShadow = true;
     soil.receiveShadow = true;
     g.add(soil);
     // 底部尖岩
-    const key = new THREE.Mesh(makeRock(0.34 * size, 1, 0.2, 1.9), mat(0x262322));
+    const key = new THREE.Mesh(makeRock(0.34 * size, 2, 0.14, 1.9), mat(0x262322));
     key.position.y = -1.28 * size;
     key.castShadow = true;
     g.add(key);
     // 草地顶盖：扁平有机圆盘微微超出岩石边缘
-    const grass = new THREE.Mesh(makeRock(1.14 * size, 2, 0.08, 0.32), mat(0x4e9a8a));
+    const grass = new THREE.Mesh(makeRock(1.14 * size, 3, 0.05, 0.32), mat(0x4e9a8a));
     grass.position.y = 0.18 * size;
     grass.scale.y = 0.55;
     grass.castShadow = true;
@@ -182,10 +182,17 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
     trunk.castShadow = true;
     t.add(trunk);
     for (const [x, y, z, r, c] of [[0, 0.42, 0, 0.24, 0x4e9a8a], [0.14, 0.34, 0.06, 0.16, 0x44897b], [-0.12, 0.36, -0.05, 0.15, 0x5aa897]]) {
-      const blob = new THREE.Mesh(makeRock(r * size, 1, 0.12), mat(c));
+      const blob = new THREE.Mesh(makeRock(r * size, 2, 0.07), mat(c));
       blob.position.set(x * size, y * size, z * size);
       blob.castShadow = true;
       t.add(blob);
+    }
+    // 果子（奶油色小圆点）
+    const berryMat = mat(0xead9bd, 0.5);
+    for (const [bx, by, bz] of [[0.16, 0.5, 0.1], [-0.1, 0.56, 0.12], [0.05, 0.48, -0.14]]) {
+      const berry = new THREE.Mesh(new THREE.SphereGeometry(0.022 * size, 10, 8), berryMat);
+      berry.position.set(bx * size, by * size, bz * size);
+      t.add(berry);
     }
     return t;
   }
@@ -222,12 +229,81 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
     island.add(blade);
   }
 
+  // 小花 ×3（细茎 + 奶油花瓣 + 青芯）
+  const flowerSpots: [number, number][] = [[-0.3, 0.52], [0.5, 0.36], [-0.05, 0.4]];
+  for (const [fx, fz] of flowerSpots) {
+    const flower = new THREE.Group();
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.09, 5), mat(0x44897b));
+    stem.position.y = 0.045;
+    flower.add(stem);
+    const petal = new THREE.Mesh(new THREE.SphereGeometry(0.024, 10, 8), mat(0xead9bd, 0.5));
+    petal.position.y = 0.1;
+    petal.scale.y = 0.7;
+    flower.add(petal);
+    const core = new THREE.Mesh(new THREE.SphereGeometry(0.01, 8, 6), glowMat(0x6db3a3, 1.2));
+    core.position.set(0, 0.115, 0.015);
+    flower.add(core);
+    flower.position.set(fx, main.topY + 0.05, fz);
+    island.add(flower);
+  }
+
+  // 鹅卵石 ×3
+  for (const [px, pz, ps] of [[0.6, 0.42, 0.07], [-0.52, 0.3, 0.05], [0.2, 0.58, 0.06]]) {
+    const pebble = new THREE.Mesh(makeRock(ps, 1, 0.18), mat(0x5a534b));
+    pebble.position.set(px, main.topY + 0.04, pz);
+    pebble.castShadow = true;
+    island.add(pebble);
+  }
+
+  // 垂藤 ×3（岛缘垂下，微微摇摆）
+  const vines: THREE.Group[] = [];
+  for (const [vx, vz, vl] of [[-1.02, -0.18, 0.55], [0.9, -0.55, 0.42], [0.3, -1.05, 0.6]]) {
+    const vine = new THREE.Group();
+    const stemM = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.005, vl, 5), mat(0x44897b));
+    stemM.position.y = -vl / 2;
+    vine.add(stemM);
+    for (const ly of [-vl * 0.35, -vl * 0.7, -vl * 0.95]) {
+      const leaf = new THREE.Mesh(makeRock(0.035, 1, 0.15), mat(0x5aa897));
+      leaf.position.set(0.02, ly, 0);
+      leaf.scale.y = 0.5;
+      vine.add(leaf);
+    }
+    vine.position.set(vx, 0.05, vz);
+    island.add(vine);
+    vines.push(vine);
+  }
+
+  // 小瀑布：池塘沿岛缘倾泻（循环水滴 + 底部水雾辉光）
+  const DROP_COUNT = isMobile ? 26 : 48;
+  const dropPositions = new Float32Array(DROP_COUNT * 3);
+  const dropSeeds: { phase: number; sway: number }[] = [];
+  for (let i = 0; i < DROP_COUNT; i++) {
+    dropSeeds.push({ phase: Math.random(), sway: (Math.random() - 0.5) * 0.12 });
+    dropPositions.set([0, -10, 0], i * 3);
+  }
+  const dGeo = new THREE.BufferGeometry();
+  dGeo.setAttribute('position', new THREE.BufferAttribute(dropPositions, 3));
+  const waterfall = new THREE.Points(dGeo, new THREE.PointsMaterial({
+    size: 0.035, color: 0x9adfd2, transparent: true, opacity: 0.75,
+    blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true,
+  }));
+  island.add(waterfall);
+  addGlow(island, 0x6db3a3, 0.8, [0.75, -1.35, -0.52], 0.3);
+
   // 发光水晶簇（岛侧，嵌入岩体）
   for (const [x, y, z, s, rz] of [[-0.88, -0.3, 0.3, 1, 0.5], [-0.74, -0.62, -0.2, 0.7, -0.4], [0.95, -0.42, 0.05, 0.85, 0.9]]) {
-    const c = makeCrystal(s);
-    c.position.set(x, y, z);
-    c.rotation.set(0.15, 0.3, rz);
-    island.add(c);
+    const cluster = new THREE.Group();
+    const main2 = makeCrystal(s);
+    cluster.add(main2);
+    for (const [ox, oz, ss, orz] of [[0.09, 0.05, 0.55, 0.9], [-0.07, -0.06, 0.4, -0.5]]) {
+      const sub = makeCrystal(s * ss);
+      sub.position.set(ox, -0.03, oz);
+      sub.rotation.z = orz;
+      cluster.add(sub);
+    }
+    cluster.position.set(x, y, z);
+    cluster.rotation.set(0.15, 0.3, rz);
+    island.add(cluster);
     addGlow(island, 0x6db3a3, 0.9, [x, y, z], 0.35);
   }
   // 发光池塘
@@ -241,7 +317,7 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
   // 岛下悬浮碎岩
   const debris: THREE.Mesh[] = [];
   for (const [x, y, z, s] of [[0.95, -1.15, 0.4, 0.15], [-0.75, -1.55, 0.2, 0.11], [0.25, -1.95, -0.5, 0.17], [1.35, -0.7, -0.6, 0.09]]) {
-    const rock = new THREE.Mesh(makeRock(s, 1, 0.22), mat(0x302b27));
+    const rock = new THREE.Mesh(makeRock(s, 2, 0.15), mat(0x302b27));
     rock.position.set(x, y, z);
     rock.castShadow = true;
     debris.push(rock);
@@ -310,6 +386,9 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
   const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.135, 0.14, 8, 20), shellMat);
   body.castShadow = true;
   robot.add(body);
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.055, 0.05, 12), darkMat);
+  neck.position.y = 0.16;
+  robot.add(neck);
   const core = new THREE.Mesh(new THREE.CircleGeometry(0.035, 18), glowMat(0x6db3a3, 1.8));
   core.position.set(0, 0.02, 0.137);
   robot.add(core);
@@ -355,11 +434,21 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
     limb.position.y = -0.09;
     limb.castShadow = true;
     arm.add(limb);
+    const wrist = new THREE.Mesh(new THREE.SphereGeometry(0.045, 14, 12), shellMat);
+    wrist.position.y = -0.17;
+    arm.add(wrist);
     arm.position.set(ax, 0.05, 0);
     arm.rotation.z = ax > 0 ? -0.25 : 0.25;
     robot.add(arm);
     arms.push(arm);
   }
+  // 悬停喷口（底部两只小喷嘴 + 辉光）
+  for (const jx of [-0.06, 0.06]) {
+    const jet = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.026, 0.035, 10), darkMat);
+    jet.position.set(jx, -0.16, 0);
+    robot.add(jet);
+  }
+  addGlow(robot, 0x6db3a3, 0.32, [0, -0.2, 0], 0.5);
   const shadowBlob = new THREE.Mesh(
     new THREE.CircleGeometry(0.17, 22),
     new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.2 }),
@@ -492,6 +581,26 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
       (meteor.material as THREE.SpriteMaterial).opacity = 0;
     }
 
+    // 瀑布水滴循环下落（带抛物线外飘）
+    const dpos = dGeo.getAttribute('position') as THREE.BufferAttribute;
+    for (let i = 0; i < DROP_COUNT; i++) {
+      const sd = dropSeeds[i];
+      const p = (t * 0.55 + sd.phase) % 1;
+      const fall = p * 2.6;
+      dpos.setXYZ(
+        i,
+        0.66 + p * 0.35 + sd.sway * Math.sin(t * 2 + sd.phase * 9),
+        main.topY - 0.05 - fall,
+        -0.42 - p * 0.18,
+      );
+    }
+    dpos.needsUpdate = true;
+    // 垂藤摇摆
+    vines.forEach((v, i) => {
+      v.rotation.x = Math.sin(t * 0.8 + i * 2.1) * 0.06;
+      v.rotation.z = Math.cos(t * 0.6 + i * 1.4) * 0.05;
+    });
+
     // 池塘涟漪（呼吸缩放）+ 天线灯呼吸
     pond.scale.setScalar(1 + Math.sin(t * 1.8) * 0.04);
     const eyePulse = 2.2 + Math.sin(t * 2.4) * 0.6;
@@ -507,6 +616,7 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
       robot.rotation.z = 0;
     }
     robot.position.y = main.topY + 0.5 + Math.sin(t * 1.15) * 0.045 + jump;
+    robot.rotation.y = -island.rotation.y + 0.35; // 抵消岛自转，始终面向镜头
     arms[0].rotation.x = Math.sin(t * 1.6) * 0.09;
     // 周期性挥手（右臂举起摆动）
     const waveAge = t - lastWave;
