@@ -1,0 +1,79 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+export { getStaticPaths } from './_albums.ts';
+
+interface Props {
+  album: {
+    key: string;
+    title: string;
+    description?: string;
+    images: { alt?: string; url: string }[];
+  };
+}
+const { album } = Astro.props;
+---
+
+<BaseLayout title={`相册 · ${album.title}`} width="wide">
+  <div class="py-12">
+    <a
+      href="/gallery/"
+      class="inline-flex items-center gap-1.5 font-mono text-[0.78rem] text-[var(--color-muted)] transition-colors hover:text-[var(--color-primary)]"
+    >
+      <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 12H5m0 0 6 6m-6-6 6-6" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      全部相册
+    </a>
+    <h1 class="mt-4 text-3xl font-bold tracking-tight text-[var(--color-ink)]">
+      {album.title}
+      <span class="ml-3 text-sm font-normal text-[var(--color-muted)]">{album.images.length} 张</span>
+    </h1>
+    {album.description && <p class="mt-2 text-[0.95rem] text-[var(--color-muted)]">{album.description}</p>}
+
+    <div class="mt-8 columns-2 gap-4 md:columns-3 [&>*]:mb-4">
+      {
+        album.images.map((img) => (
+          <button
+            type="button"
+            data-lightbox-src={img.url}
+            data-lightbox-alt={img.alt ?? album.title}
+            class="block w-full cursor-zoom-in overflow-hidden rounded-xl border border-white/[0.06]"
+          >
+            <img
+              src={img.url}
+              alt={img.alt ?? album.title}
+              loading="lazy"
+              class="w-full transition-transform duration-300 hover:scale-[1.03]"
+            />
+          </button>
+        ))
+      }
+    </div>
+  </div>
+
+  <dialog class="lightbox m-auto max-h-[92vh] max-w-[92vw] bg-transparent backdrop:bg-black/80 backdrop:backdrop-blur-sm">
+    <img src="" alt="" class="max-h-[92vh] max-w-[92vw] rounded-xl object-contain" />
+  </dialog>
+</BaseLayout>
+
+<style>
+  dialog.lightbox:not([open]) {
+    display: none;
+  }
+</style>
+
+<script>
+  document.addEventListener('click', (e) => {
+    if (!(e.target instanceof Element)) return;
+    const trigger = e.target.closest<HTMLElement>('[data-lightbox-src]');
+    const dialog = document.querySelector<HTMLDialogElement>('dialog.lightbox');
+    if (trigger && dialog) {
+      const img = dialog.querySelector('img');
+      if (img) {
+        img.src = trigger.dataset.lightboxSrc ?? '';
+        img.alt = trigger.dataset.lightboxAlt ?? '';
+      }
+      dialog.showModal();
+    }
+  });
+</script>

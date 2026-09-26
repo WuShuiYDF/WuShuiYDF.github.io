@@ -1,87 +1,40 @@
 ---
-// 宣言叙事段：pin 一屏，逐行从遮罩升起 + 关键词冷锚色化（照上一版 HeroNarrative，GSAP 3.13 免费版 SplitText）
+// 宣言段：编号台账式排版（01-05 + hairline 分隔 + 关键词冷锚色），滚动错落揭示，无 pin
+const lines = [
+  { text: '内容即 git', accent: 'git' },
+  { text: '动效有纪律', accent: '' },
+  { text: '暗色从第一天', accent: '' },
+  { text: '写作一键发布', accent: '一键发布' },
+  { text: 'AI 就地回答', accent: 'AI' },
+];
 ---
 
-<section class="narr relative flex min-h-[100dvh] items-center" aria-label="宣言">
-  <div class="mx-auto w-full max-w-5xl px-5">
-    <p class="kicker">Manifesto</p>
-    <div class="mt-8 flex flex-col gap-3">
-      {
-        [
-          { text: '内容即 git', accent: 'git' },
-          { text: '动效有纪律', accent: '' },
-          { text: '暗色从第一天', accent: '' },
-          { text: '写作一键发布', accent: '一键发布' },
-          { text: 'AI 就地回答', accent: 'AI' },
-        ].map((line) => (
-          <p data-narr-line class="text-[clamp(1.7rem,6vw,3.4rem)] font-bold leading-tight tracking-tight text-[var(--color-ink)]">
+<section class="narr mx-auto max-w-5xl px-5 py-28" aria-label="宣言">
+  <p class="kicker">Manifesto</p>
+  <div class="mt-8 border-t border-white/[0.07]">
+    {
+      lines.map((line, i) => (
+        <div class="reveal group flex items-baseline gap-6 border-b border-white/[0.07] py-6 md:gap-10 md:py-8">
+          <span class="mono-date shrink-0 text-[var(--color-muted)] transition-colors group-hover:text-[var(--color-primary)]">
+            {String(i + 1).padStart(2, '0')}
+          </span>
+          <p class="text-[clamp(1.5rem,4.5vw,2.6rem)] font-bold leading-tight tracking-tight text-[var(--color-ink)] transition-colors">
             {line.accent ? (
               <>
                 {line.text.split(line.accent)[0]}
-                <span data-narr-accent class="text-[var(--color-muted)]">{line.accent}</span>
+                <span class="text-[var(--color-primary)]">{line.accent}</span>
                 {line.text.split(line.accent)[1] ?? ''}
               </>
             ) : (
               line.text
             )}
           </p>
-        ))
-      }
-    </div>
+          <span
+            aria-hidden
+            class="pointer-events-none ms-auto hidden h-px flex-1 origin-right scale-x-0 bg-[color-mix(in_oklab,var(--color-primary)_50%,transparent)] transition-transform duration-700 group-hover:origin-left group-hover:scale-x-100 md:block"
+          />
+        </div>
+      ))
+    }
   </div>
 </section>
-
-<script>
-  import { gsap } from 'gsap';
-  import { ScrollTrigger } from 'gsap/ScrollTrigger';
-  import { SplitText } from 'gsap/SplitText';
-
-  gsap.registerPlugin(ScrollTrigger, SplitText);
-
-  let inited = false;
-
-  function initNarrative() {
-    const scope = document.querySelector<HTMLElement>('.narr');
-    if (!scope || inited) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    if (window.innerWidth < 768) return; // 小屏不做 pin，直接静态展示
-    inited = true;
-
-    const split = SplitText.create('[data-narr-line]', {
-      type: 'lines',
-      mask: 'lines',
-    });
-
-    const tl = gsap.timeline({
-      scrollTrigger: {
-        trigger: scope,
-        start: 'top top',
-        end: '+=220%',
-        scrub: 1,
-        pin: true,
-      },
-    });
-
-    tl.from(split.lines, {
-      yPercent: 130,
-      autoAlpha: 0,
-      ease: 'none',
-      stagger: 0.12,
-      duration: 0.9,
-    }).to('[data-narr-accent]', {
-      color: 'var(--color-primary)',
-      duration: 0.35,
-      ease: 'none',
-      stagger: 0.05,
-    });
-  }
-
-  function cleanup() {
-    ScrollTrigger.getAll().forEach((t) => t.kill());
-    inited = false;
-  }
-
-  document.addEventListener('astro:page-load', initNarrative);
-  document.addEventListener('astro:before-swap', cleanup);
-  initNarrative();
-</script>

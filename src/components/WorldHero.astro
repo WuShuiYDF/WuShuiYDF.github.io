@@ -1,0 +1,51 @@
+---
+// mimo 风格 3D 首屏挂载点：视口内才动态加载 three.js 场景（独立 chunk）；
+// WebGL 失败 / reduced-motion 降级时保留 CSS 轨道环兜底
+---
+
+<div class="world-hero absolute inset-0 overflow-hidden" data-world-hero>
+  <div
+    class="world-canvas absolute inset-y-0 right-0 h-full w-full md:w-[54%]"
+    data-world-canvas
+  >
+  </div>
+</div>
+
+<style>
+  @media (max-width: 767px) {
+    .world-canvas {
+      opacity: 0.45;
+      pointer-events: none;
+    }
+  }
+</style>
+
+<script>
+  let handle: { dispose: () => void } | null = null;
+
+  async function mount() {
+    const canvasHost = document.querySelector<HTMLElement>('[data-world-canvas]');
+    const section = document.querySelector<HTMLElement>('[data-world-hero]');
+    if (!canvasHost || !section || canvasHost.childElementCount > 0) return;
+    const { initWorldHero } = await import('../scripts/world-hero');
+    handle = initWorldHero(canvasHost);
+    if (!handle) section.dataset.worldFailed = '1'; // WebGL 不可用：CSS 兜底继续显示
+  }
+
+  const io = new IntersectionObserver(
+    (entries) => {
+      if (entries.some((e) => e.isIntersecting)) {
+        io.disconnect();
+        mount();
+      }
+    },
+    { rootMargin: '120px' },
+  );
+  const target = document.querySelector('[data-world-hero]');
+  if (target) io.observe(target);
+
+  document.addEventListener('astro:before-swap', () => {
+    handle?.dispose();
+    handle = null;
+  });
+</script>

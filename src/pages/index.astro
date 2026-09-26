@@ -3,6 +3,7 @@ import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PostCard from '../components/PostCard.astro';
 import Narrative from '../components/Narrative.astro';
+import WorldHero from '../components/WorldHero.astro';
 import { NAV } from '../config';
 import linksJson from '../data/links.json';
 
@@ -27,6 +28,7 @@ const [featured, ...rest] = posts.slice(0, 5);
   <!-- Hero：左对齐满屏，双行标题遮罩揭示（照上一版 HeroFront） -->
   <section class="relative flex min-h-[100dvh] flex-col justify-center overflow-hidden pb-10 pt-16">
     <div aria-hidden class="disk-grid pointer-events-none absolute inset-0"></div>
+    <WorldHero />
     <div aria-hidden class="pointer-events-none absolute inset-0 overflow-hidden">
       <span class="orbit-ring right-[-10%] top-[12%] h-[420px] w-[420px]"></span>
       <span class="orbit-ring right-[2%] top-[26%] h-[260px] w-[260px]"></span>
