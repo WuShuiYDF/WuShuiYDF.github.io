@@ -9,7 +9,7 @@ import '../styles/global.css';
 interface Props {
   title?: string;
   description?: string;
-  width?: 'narrow' | 'wide';
+  width?: 'narrow' | 'wide' | 'full';
 }
 const { title, description = SITE.description, width = 'narrow' } = Astro.props;
 const fullTitle = title ? `${title} · ${SITE.name}` : `${SITE.name} · ${SITE.subtitle}`;
@@ -39,8 +39,9 @@ const fullTitle = title ? `${title} · ${SITE.name}` : `${SITE.name} · ${SITE.s
     <Header />
     <main
       class:list={[
-        'mx-auto w-full flex-1 px-4 md:px-6',
-        width === 'narrow' ? 'max-w-3xl' : 'max-w-6xl',
+        'mx-auto w-full flex-1',
+        width === 'full' ? '' : 'px-4 md:px-6',
+        width === 'narrow' ? 'max-w-3xl' : width === 'full' ? 'max-w-none' : 'max-w-6xl',
       ]}
     >
       <slot />

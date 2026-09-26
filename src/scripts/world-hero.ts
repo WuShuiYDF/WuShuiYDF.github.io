@@ -7,6 +7,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 export interface WorldHeroHandle {
   dispose: () => void;
@@ -69,8 +70,7 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.5 : 2));
   renderer.setSize(width, height);
   renderer.shadowMap.enabled = !isMobile;
-  // @ts-ignore three 新版本标记弃用但仍是软阴影标准实现
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = THREE.PCFShadowMap; // 新版 three 移除了 PCFSoft，PCF + 大 radius 等效柔影
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.12;
   renderer.domElement.style.cssText = 'width:100%;height:100%;display:block;';
@@ -86,8 +86,24 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
   const fogColor = new THREE.Color(
     document.documentElement.dataset.theme === 'light' ? 0xfaf7f1 : 0x262322,
   );
-  scene.background = fogColor;
   scene.fog = new THREE.Fog(fogColor, 8, 15);
+
+  // 渐变天幕：暖地平线 → 深顶部（主题切换时换色）
+  const skyMat = new THREE.ShaderMaterial({
+    side: THREE.BackSide,
+    depthWrite: false,
+    fog: false,
+    uniforms: {
+      cTop: { value: new THREE.Color(0x1a1714) },
+      cBottom: { value: new THREE.Color(0x453b33) },
+    },
+    vertexShader:
+      'varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader:
+      'varying vec3 vP; uniform vec3 cTop; uniform vec3 cBottom; void main(){ float h = normalize(vP).y * 0.5 + 0.5; gl_FragColor = vec4(mix(cBottom, cTop, smoothstep(0.18, 0.9, h)), 1.0); }',
+  });
+  const sky = new THREE.Mesh(new THREE.SphereGeometry(42, 32, 15), skyMat);
+  scene.add(sky);
 
   // 场景内地面网格（雾中渐隐，替代 CSS 格栅）
   const grid = new THREE.GridHelper(36, 46, 0x6db3a3, 0x6b6259);
@@ -95,9 +111,22 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
   (grid.material as THREE.Material).opacity = 0.14;
   grid.position.set(0.55, -2.6, 0);
   scene.add(grid);
-  // Bloom 泛光（桌面端）：发光体（眼睛/水晶/池塘/萤火/辉光贴片）产生柔光
-  // Bloom 泛光在无硬件 GPU（软渲染）下会渲染失败，默认关闭；加 ?bloom=1 可在真机上体验
-  const useBloom = !isMobile && !reduced && location.search.includes("bloom");
+  // Studio 环境贴图：给所有 PBR 材质带来陶瓷/塑料反光质感（threeui 式材质感的核心）
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const envTex = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  scene.environment = envTex;
+
+  // 软渲染检测（SwiftShader/llvmpipe）：bloom 在其上会失败，自动降级
+  let gpuName = '';
+  try {
+    const gl = renderer.getContext();
+    const ext = gl.getExtension('WEBGL_debug_renderer_info');
+    if (ext) gpuName = String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) ?? '');
+  } catch { /* 忽略 */ }
+  const isSoftware = /swiftshader|llvmpipe|software|basic render/i.test(gpuName);
+
+  // Bloom 泛光：真硬件 GPU 默认开启
+  const useBloom = !isMobile && !reduced && !isSoftware;
   let composer: EffectComposer | null = null;
   if (useBloom) {
     composer = new EffectComposer(renderer);
@@ -106,7 +135,10 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
     composer.addPass(new OutputPass());
   }
   const fogObserver = new MutationObserver(() => {
-    fogColor.set(document.documentElement.dataset.theme === 'light' ? 0xfaf7f1 : 0x262322);
+    const light = document.documentElement.dataset.theme === 'light';
+    fogColor.set(light ? 0xfaf7f1 : 0x262322);
+    skyMat.uniforms.cTop.value.set(light ? 0xffffff : 0x1a1714);
+    skyMat.uniforms.cBottom.value.set(light ? 0xe9e2d5 : 0x453b33);
     grid.material.needsUpdate = true;
   });
   fogObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
@@ -200,7 +232,11 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
   function makeCrystal(size: number): THREE.Mesh {
     const geo = new THREE.OctahedronGeometry(0.16 * size, 0);
     geo.scale(1, 1.9, 1);
-    const m = new THREE.Mesh(geo, glowMat(0x8fe0cf, 1.15));
+    const m = new THREE.Mesh(geo, new THREE.MeshPhysicalMaterial({
+      color: 0x8fe0cf, emissive: 0x6db3a3, emissiveIntensity: 0.9,
+      roughness: 0.08, metalness: 0.1, transparent: true, opacity: 0.92,
+      clearcoat: 1, clearcoatRoughness: 0.06, // 玻璃水晶感
+    }));
     m.castShadow = true;
     return m;
   }
@@ -379,7 +415,10 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
 
   // ── 小机器人 v3：大头比例 / 耳罩 / 胸口核心 / 挥手 ──
   const robot = new THREE.Group();
-  const shellMat = new THREE.MeshStandardMaterial({ color: 0xd8d0c4, roughness: 0.42, metalness: 0.12 });
+  const shellMat = new THREE.MeshPhysicalMaterial({
+    color: 0xd8d0c4, roughness: 0.3, metalness: 0.05,
+    clearcoat: 0.65, clearcoatRoughness: 0.25, // 陶瓷玩具质感
+  });
   const darkMat = new THREE.MeshStandardMaterial({ color: 0x1e1c1b, roughness: 0.35, metalness: 0.3 });
   const eyeMat = glowMat(0x6db3a3, 2.6);
 
@@ -519,6 +558,12 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
     renderer.domElement.addEventListener('pointerdown', onPointerDown);
     window.addEventListener('pointerup', onPointerUp);
   }
+
+  // 环境反射强度统一收敛（暖夜景氛围，不过曝）
+  scene.traverse((obj) => {
+    const m = (obj as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined;
+    if (m && 'envMapIntensity' in m) m.envMapIntensity = 0.55;
+  });
 
   // ── 渲染循环 ──
   const born = performance.now() / 1000;
@@ -711,6 +756,7 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
         }
       });
       composer?.dispose();
+      pmrem.dispose();
       renderer.dispose();
       renderer.domElement.remove();
     },
