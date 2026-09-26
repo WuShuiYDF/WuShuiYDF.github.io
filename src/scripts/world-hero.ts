@@ -8,6 +8,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 export interface WorldHeroHandle {
   dispose: () => void;
@@ -499,6 +500,56 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
   robot.rotation.y = 0.35;
   island.add(robot);
 
+  // ── 真模型机器人（RobotExpressive，CC0，含 13 个骨骼动画）──
+  let mixer: THREE.AnimationMixer | null = null;
+  const actions: Record<string, THREE.AnimationAction> = {};
+  let gltfRobot: THREE.Group | null = null;
+  new GLTFLoader().load(
+    '/models/RobotExpressive.glb',
+    (gltf) => {
+      const model = gltf.scene;
+      model.traverse((o) => {
+        if ((o as THREE.Mesh).isMesh) {
+          o.castShadow = true;
+          const m = (o as THREE.Mesh).material as THREE.MeshStandardMaterial;
+          if (m && 'envMapIntensity' in m) m.envMapIntensity = 0.7;
+        }
+      });
+      // 归一化：目标身高 0.6，脚底落地
+      const box = new THREE.Box3().setFromObject(model);
+      model.scale.setScalar(0.6 / (box.max.y - box.min.y));
+      const box2 = new THREE.Box3().setFromObject(model);
+      model.position.y = -box2.min.y;
+      const wrapper = new THREE.Group();
+      wrapper.add(model);
+      wrapper.position.set(0.3, main.topY + 0.4, 0.62);
+      island.add(wrapper);
+      robot.visible = false; // 程序化机器人退役（加载失败时保留兜底）
+      gltfRobot = wrapper;
+      if (gltf.animations.length) {
+        mixer = new THREE.AnimationMixer(model);
+        for (const clip of gltf.animations) actions[clip.name] = mixer.clipAction(clip);
+        actions['Idle']?.play();
+        mixer.addEventListener('finished', () => {
+          actions['Idle']?.reset().fadeIn(0.25).play();
+        });
+      }
+    },
+    undefined,
+    () => { /* 加载失败：静默保留程序化机器人兜底 */ },
+  );
+
+  /** 播放一次动画后回落 Idle */
+  let waveStart = -10;
+  function playOnce(name: string) {
+    const a = actions[name];
+    if (!a || !mixer) return;
+    a.reset();
+    a.setLoop(THREE.LoopOnce, 1);
+    a.clampWhenFinished = false;
+    a.fadeIn(0.15).play();
+  }
+
   // ── 萤火粒子 ──
   const COUNT = isMobile ? 80 : 170;
   const positions = new Float32Array(COUNT * 3);
@@ -549,7 +600,10 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
     renderer.domElement.style.cursor = 'grabbing';
   };
   const onPointerUp = () => {
-    if (drag.active && drag.moved < 6) jumpStart = performance.now() / 1000;
+    if (drag.active && drag.moved < 6) {
+      jumpStart = performance.now() / 1000;
+      playOnce('Jump'); // 真模型：播放骨骼跳跃动画
+    }
     drag.active = false;
     renderer.domElement.style.cursor = 'grab';
   };
@@ -577,8 +631,11 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
   let nextMeteor = 3 + Math.random() * 4;
   const camTarget = new THREE.Vector3();
 
+  let lastT = performance.now() / 1000;
   const tick = () => {
     const t = performance.now() / 1000;
+    const dt = Math.min(t - lastT, 0.05);
+    lastT = t;
     const age = t - born;
 
     // 入场：岛浮起 + 相机推进
@@ -663,7 +720,20 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
     robot.position.y = main.topY + 0.5 + Math.sin(t * 1.15) * 0.045 + jump;
     robot.rotation.y = -island.rotation.y + 0.35; // 抵消岛自转，始终面向镜头
     arms[0].rotation.x = Math.sin(t * 1.6) * 0.09;
-    // 周期性挥手（右臂举起摆动）
+    // 真模型动画驱动 + 面向镜头 + 周期挥手
+    if (mixer) mixer.update(dt);
+    if (gltfRobot) {
+      gltfRobot.rotation.y = -island.rotation.y + 0.3;
+      gltfRobot.position.y = main.topY + 0.4 + Math.sin(t * 1.15) * 0.03;
+      const waveAge2 = t - waveStart;
+      if (waveAge2 > nextWave) {
+        waveStart = t;
+        nextWave = nextWaveIn();
+        playOnce('Wave');
+      }
+    }
+
+    // 周期性挥手（右臂举起摆动，程序化兜底机器人用）
     const waveAge = t - lastWave;
     if (waveAge > nextWave) {
       lastWave = t;
