@@ -1,0 +1,24 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SectionTitle from '../components/SectionTitle.astro';
+---
+
+<BaseLayout title="音乐" description="单曲循环区">
+  <div class="py-12">
+    <SectionTitle title="音乐" sub="单曲循环区" />
+    <div class="mt-10 rounded-2xl border border-dashed border-white/10 p-16 text-center">
+      <svg
+        class="mx-auto h-10 w-10 animate-[spin_4s_linear_infinite] text-[var(--color-muted)]"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+      >
+        <circle cx="12" cy="12" r="9" />
+        <circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none" />
+      </svg>
+      <p class="mt-4 text-[var(--color-muted)]">这里还没有排队的曲目</p>
+      <p class="mt-2 text-sm text-[var(--color-muted)]">等我挑好歌单就来。</p>
+    </div>
+  </div>
+</BaseLayout>

@@ -2,6 +2,7 @@
 import { ClientRouter } from 'astro:transitions';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import CozeWidget from '../components/CozeWidget.astro';
 import { SITE } from '../config';
 import '../styles/global.css';
 
@@ -44,5 +45,6 @@ const fullTitle = title ? `${title} · ${SITE.name}` : `${SITE.name} · ${SITE.s
       <slot />
     </main>
     <Footer />
+    <CozeWidget />
   </body>
 </html>

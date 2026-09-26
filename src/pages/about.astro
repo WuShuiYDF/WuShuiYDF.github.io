@@ -1,0 +1,19 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const about = (await getCollection('pages')).find((p) => p.id === 'about');
+if (!about) throw new Error('pages 集合中缺少 about');
+const { Content } = await render(about);
+---
+
+<BaseLayout title="关于" description={about.data.description}>
+  <div class="py-12">
+    <h1 class="text-3xl font-bold md:text-4xl">
+      <span class="glow-text">{about.data.title}</span>
+    </h1>
+    <div class="prose mt-8">
+      <Content />
+    </div>
+  </div>
+</BaseLayout>

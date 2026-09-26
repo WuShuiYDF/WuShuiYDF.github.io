@@ -1,0 +1,53 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SectionTitle from '../components/SectionTitle.astro';
+import linksYaml from '../data/links.json';
+
+interface LinkItem {
+  name: string;
+  link: string;
+  avatar: string;
+  descr: string;
+}
+interface LinkGroup {
+  class_name: string;
+  class_desc?: string;
+  link_list: LinkItem[];
+}
+const groups = linksYaml as LinkGroup[];
+---
+
+<BaseLayout title="友链" width="wide">
+  <div class="py-12">
+    <SectionTitle title="友链" sub="世界尽头的孤独者们" />
+    {
+      groups.map((group) => (
+        <section class="mt-10">
+          <h3 class="text-lg font-bold">{group.class_name}</h3>
+          {group.class_desc && <p class="mt-1 text-sm text-[var(--color-muted)]">{group.class_desc}</p>}
+          <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {group.link_list.map((item) => (
+              <a
+                href={item.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="reveal glass noise group flex items-center gap-4 p-5 transition-transform duration-300 hover:-translate-y-1"
+              >
+                <img
+                  src={item.avatar}
+                  alt={item.name}
+                  loading="lazy"
+                  class="h-12 w-12 shrink-0 rounded-full object-cover"
+                />
+                <div class="min-w-0">
+                  <p class="font-bold transition-colors group-hover:text-[var(--color-primary)]">{item.name}</p>
+                  <p class="mt-0.5 truncate text-sm text-[var(--color-muted)]">{item.descr}</p>
+                </div>
+              </a>
+            ))}
+          </div>
+        </section>
+      ))
+    }
+  </div>
+</BaseLayout>

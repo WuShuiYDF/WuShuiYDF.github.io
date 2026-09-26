@@ -1,0 +1,76 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import SectionTitle from '../../components/SectionTitle.astro';
+import galleryYaml from '../../data/gallery.json';
+
+interface GalleryImage {
+  alt?: string;
+  url: string;
+}
+interface GalleryGroup {
+  key: string;
+  title: string;
+  description?: string;
+  cover?: string;
+  images: GalleryImage[];
+}
+const groups = (galleryYaml as GalleryGroup[]).filter((g) => g.images.length > 0);
+---
+
+<BaseLayout title="相册" width="wide">
+  <div class="py-12">
+    <SectionTitle title="相册" sub={`${groups.length} 个图集`} />
+
+    {
+      groups.map((group) => (
+        <section class="mt-12">
+          <h3 class="text-lg font-bold">{group.title}</h3>
+          {group.description && <p class="mt-1 text-sm text-[var(--color-muted)]">{group.description}</p>}
+          <div class="mt-4 columns-2 gap-4 md:columns-3 [&>*]:mb-4">
+            {group.images.map((img) => (
+              <button
+                type="button"
+                data-lightbox-src={img.url}
+                data-lightbox-alt={img.alt ?? group.title}
+                class="reveal block w-full cursor-zoom-in overflow-hidden rounded-xl border border-white/5"
+              >
+                <img
+                  src={img.url}
+                  alt={img.alt ?? group.title}
+                  loading="lazy"
+                  class="w-full transition-transform duration-300 hover:scale-[1.03]"
+                />
+              </button>
+            ))}
+          </div>
+        </section>
+      ))
+    }
+  </div>
+
+  <dialog class="lightbox m-auto max-h-[92vh] max-w-[92vw] bg-transparent backdrop:bg-black/80 backdrop:backdrop-blur-sm">
+    <img src="" alt="" class="max-h-[92vh] max-w-[92vw] rounded-xl object-contain" />
+  </dialog>
+</BaseLayout>
+
+<style>
+  dialog.lightbox:not([open]) {
+    display: none;
+  }
+</style>
+
+<script>
+  document.addEventListener('click', (e) => {
+    if (!(e.target instanceof Element)) return;
+    const trigger = e.target.closest<HTMLElement>('[data-lightbox-src]');
+    const dialog = document.querySelector<HTMLDialogElement>('dialog.lightbox');
+    if (trigger && dialog) {
+      const img = dialog.querySelector('img');
+      if (img) {
+        img.src = trigger.dataset.lightboxSrc ?? '';
+        img.alt = trigger.dataset.lightboxAlt ?? '';
+      }
+      dialog.showModal();
+    }
+  });
+</script>

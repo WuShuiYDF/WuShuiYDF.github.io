@@ -1,0 +1,74 @@
+[
+  {
+    "class_name": "值得学习的巨佬",
+    "class_desc": "眼前仿佛世界尽头，美得让人觉得那么孤单",
+    "link_list": [
+      {
+        "name": "WuShui YDF",
+        "link": "https://www.wushuiydf.com/",
+        "avatar": "https://s2.loli.net/2024/06/14/VjUoPCw6gAYdFJD.png",
+        "descr": "无水有点烦的博客"
+      },
+      {
+        "name": "Hello 算法",
+        "link": "https://www.hello-algo.com/",
+        "avatar": "https://www.hello-algo.com/assets/images/logo.svg",
+        "descr": "算法学习"
+      }
+    ]
+  },
+  {
+    "class_name": "推荐网站",
+    "class_desc": "好看，爱看！！！",
+    "link_list": [
+      {
+        "name": "Youtube",
+        "link": "https://www.youtube.com/",
+        "avatar": "https://i.loli.net/2020/05/14/9ZkGg8v3azHJfM1.png",
+        "descr": "视频网站"
+      },
+      {
+        "name": "Instagram",
+        "link": "https://www.instagram.com/",
+        "avatar": "https://s2.loli.net/2024/01/26/RUyYpe12tEP5sAD.png",
+        "descr": "一个照片和视频分享平台"
+      },
+      {
+        "name": "Twitter",
+        "link": "https://twitter.com/",
+        "avatar": "https://i.loli.net/2020/05/14/5VyHPQqR6LWF39a.png",
+        "descr": "社交分享平台"
+      },
+      {
+        "name": "Weibo",
+        "link": "https://www.weibo.com/",
+        "avatar": "https://i.loli.net/2020/05/14/TLJBum386vcnI1P.png",
+        "descr": "中國最大社交分享平台"
+      }
+    ]
+  },
+  {
+    "class_name": "过往项目",
+    "class_desc": "曾经做过的项目回顾",
+    "link_list": [
+      {
+        "name": "深海招聘",
+        "link": "https://wushuiydf.com/oms",
+        "avatar": "https://s2.loli.net/2024/06/13/fMgShAqbH8rnR6O.png",
+        "descr": "信管系统门户网站"
+      },
+      {
+        "name": "Tduck",
+        "link": "https://tduck.onno.tech",
+        "avatar": "https://s2.loli.net/2024/01/27/VXze1T9673LbjOs.png",
+        "descr": "初步统计招聘表单以及回复信息"
+      },
+      {
+        "name": "无水有点烦的后台数据系统",
+        "link": "http://47.109.92.182:5333",
+        "avatar": "https://s2.loli.net/2024/06/14/4ThPB7bQLU5tpMu.png",
+        "descr": "人事管理后台系统"
+      }
+    ]
+  }
+]

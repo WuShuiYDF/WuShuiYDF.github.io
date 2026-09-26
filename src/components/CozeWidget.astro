@@ -1,0 +1,32 @@
+---
+// Coze 客服悬浮按钮：M1 直接新标签页打开（coze.cn 分享页禁 iframe 内嵌），M4 换官方 Web SDK
+import { SITE } from '../config';
+---
+
+<button
+  id="coze-fab"
+  data-coze-url={SITE.coze}
+  class="glow-ring fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-accent)] text-white transition-transform hover:scale-110"
+  aria-label="打开一凡AI助手"
+  title="一凡AI"
+>
+  <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <path
+      d="M12 3a7 7 0 0 1 7 7v1.5a2.5 2.5 0 0 1-2.5 2.5H15l-3 3-3-3H7.5A2.5 2.5 0 0 1 5 11.5V10a7 7 0 0 1 7-7Z"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <circle cx="9.5" cy="10.5" r="1" fill="currentColor" stroke="none" />
+    <circle cx="14.5" cy="10.5" r="1" fill="currentColor" stroke="none" />
+  </svg>
+</button>
+
+<script>
+  document.addEventListener('click', (e) => {
+    if (!(e.target instanceof Element)) return;
+    const fab = e.target.closest<HTMLButtonElement>('#coze-fab');
+    if (!fab) return;
+    const url = fab.dataset.cozeUrl;
+    if (url) window.open(url, '_blank', 'noopener');
+  });
+</script>
