@@ -14,7 +14,7 @@ const max = Math.max(1, ...tags.map(([, c]) => c));
 
 <BaseLayout title="标签">
   <div class="py-12">
-    <SectionTitle title="标签" sub={`共 ${tags.length} 个`} />
+    <SectionTitle title="标签" sub={`共 ${tags.length} 个`} kicker="Tags" />
     <div class="mt-8 flex flex-wrap items-baseline gap-x-5 gap-y-3">
       {
         tags.map(([tag, count]) => (

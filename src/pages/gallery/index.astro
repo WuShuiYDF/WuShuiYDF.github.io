@@ -19,7 +19,7 @@ const groups = (galleryYaml as GalleryGroup[]).filter((g) => g.images.length > 0
 
 <BaseLayout title="相册" width="wide">
   <div class="py-12">
-    <SectionTitle title="相册" sub={`${groups.length} 个图集`} />
+    <SectionTitle title="相册" sub={`${groups.length} 个图集`} kicker="Gallery" />
 
     {
       groups.map((group) => (

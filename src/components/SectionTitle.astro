@@ -2,11 +2,15 @@
 interface Props {
   title: string;
   sub?: string;
+  kicker?: string;
 }
-const { title, sub } = Astro.props;
+const { title, sub, kicker } = Astro.props;
 ---
 
-<h2 class="text-2xl font-bold md:text-3xl" style="font-family: var(--font-display)">
-  <span class="glow-text">{title}</span>
-  {sub && <span class="ml-3 text-sm font-normal text-[var(--color-muted)]">{sub}</span>}
-</h2>
+<div>
+  {kicker && <p class="kicker">{kicker}</p>}
+  <h2 class="mt-2 text-2xl font-bold md:text-3xl">
+    <span class="glow-text">{title}</span>
+    {sub && <span class="ml-3 text-sm font-normal text-[var(--color-muted)]">{sub}</span>}
+  </h2>
+</div>

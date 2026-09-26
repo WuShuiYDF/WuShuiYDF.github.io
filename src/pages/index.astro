@@ -28,30 +28,30 @@ const roles = ['算法', '经济学', '运筹优化', 'Web 开发', '认真生�
   <!-- Hero：aurora 渐变 + 噪点 + 打字机 -->
   <section class="noise relative flex min-h-[88svh] items-center justify-center overflow-hidden">
     <div
-      class="aurora-a pointer-events-none absolute -top-32 left-1/4 h-[480px] w-[480px] rounded-full opacity-30 blur-3xl"
+      class="aurora-a pointer-events-none absolute -top-32 left-1/4 h-[480px] w-[480px] rounded-full opacity-[0.13] blur-3xl"
       style="background: radial-gradient(circle, var(--color-primary), transparent 65%);"
     >
     </div>
     <div
-      class="aurora-b pointer-events-none absolute bottom-0 right-1/5 h-[420px] w-[420px] rounded-full opacity-25 blur-3xl"
-      style="background: radial-gradient(circle, var(--color-accent), transparent 65%);"
+      class="aurora-b pointer-events-none absolute bottom-0 right-1/5 h-[420px] w-[420px] rounded-full opacity-[0.10] blur-3xl"
+      style="background: radial-gradient(circle, var(--color-h5c, #c99b5e), transparent 65%);"
     >
     </div>
 
     <div class="relative z-10 px-4 text-center">
-      <p class="font-mono text-sm tracking-[0.3em] text-[var(--color-muted)]">HELLO, WORLD</p>
+      <p class="kicker">Hello, World</p>
       <h1 class="mt-6 text-4xl font-bold leading-tight md:text-6xl">
         你好，我是<span class="glow-text">无水有点烦</span>
       </h1>
       <p class="mt-5 text-lg text-[var(--color-muted)] md:text-xl">
         一个爱折腾
-        <span class="font-mono font-bold text-[var(--color-accent)]" id="typewriter">&nbsp;</span><span class="animate-pulse">▌</span>
+        <span class="font-mono font-bold text-[var(--color-primary)]" id="typewriter">&nbsp;</span><span class="animate-pulse">▌</span>
         的大学生
       </p>
       <div class="mt-10 flex flex-wrap items-center justify-center gap-4">
         <a
           href="/posts/"
-          class="magnetic glow-ring rounded-full bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] px-8 py-3 font-bold text-white transition-transform"
+          class="magnetic btn-primary glow-ring rounded-full px-8 py-3 font-bold"
         >
           开始阅读
         </a>
@@ -87,8 +87,8 @@ const roles = ['算法', '经济学', '运筹优化', 'Web 开发', '认真生�
   <!-- 精选文章 -->
   <section class="mx-auto mt-16 max-w-6xl px-4 md:px-6">
     <div class="flex items-end justify-between">
-      <SectionTitle title="最新文章" />
-      <a href="/posts/" class="text-sm text-[var(--color-muted)] transition-colors hover:text-[var(--color-accent)]">
+      <SectionTitle title="最新文章" kicker="Latest" />
+      <a href="/posts/" class="text-sm text-[var(--color-muted)] transition-colors hover:text-[var(--color-primary)]">
         全部文章 →
       </a>
     </div>
@@ -99,7 +99,7 @@ const roles = ['算法', '经济学', '运筹优化', 'Web 开发', '认真生�
 
   <!-- 探索入口 -->
   <section class="mx-auto mt-16 max-w-6xl px-4 pb-20 md:px-6">
-    <SectionTitle title="探索" />
+    <SectionTitle title="探索" kicker="Explore" />
     <div class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
       {
         explore.map((item, i) => (

@@ -6,7 +6,7 @@ interface Props {
 }
 const { post } = Astro.props;
 const { title, date, tags, category, summary } = post.data;
-const dateStr = date.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
+const dateStr = `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
 const excerpt = summary ?? '';
 ---
 
@@ -14,9 +14,9 @@ const excerpt = summary ?? '';
   <h3 class="text-lg font-bold transition-colors group-hover:text-[var(--color-primary)]">
     {title}
   </h3>
-  <p class="mt-2 text-xs text-[var(--color-muted)]">
-    <time datetime={date.toISOString()}>{dateStr}</time>
-    {category && <span class="ml-2 rounded-full bg-[color-mix(in_oklab,var(--color-accent)_18%,transparent)] px-2 py-0.5">{category}</span>}
+  <p class="mt-2 flex items-center gap-2 text-xs text-[var(--color-muted)]">
+    <time class="mono-date" datetime={date.toISOString()}>{dateStr}</time>
+    {category && <span class="rounded-full bg-[color-mix(in_oklab,var(--color-primary)_14%,transparent)] px-2 py-0.5 font-mono uppercase tracking-wide">{category}</span>}
   </p>
   {excerpt && <p class="mt-3 line-clamp-3 text-sm leading-relaxed text-[var(--color-muted)]">{excerpt.slice(0, 80)}{excerpt.length > 80 ? '…' : ''}</p>}
   {
