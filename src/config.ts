@@ -17,3 +17,11 @@ export const NAV = [
   { label: '一凡AI', href: '/ai' },
   { label: '关于', href: '/about' },
 ];
+
+// Giscus 评论配置：在 https://giscus.app 生成后把 repoId / categoryId 填上即可启用
+export const GISCUS = {
+  repo: 'WuShuiYDF/WuShuiYDF.github.io',
+  repoId: '',
+  category: 'Announcements',
+  categoryId: '',
+};

@@ -1,0 +1,27 @@
+---
+// 顶部阅读进度条：渐变细条，用 scaleX 避免布局抖动
+---
+
+<div
+  class="reading-progress pointer-events-none fixed left-0 top-0 z-[60] h-0.5 w-full origin-left scale-x-0 bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)]"
+  aria-hidden="true"
+>
+</div>
+
+<script>
+  function initProgress() {
+    const bar = document.querySelector<HTMLElement>('.reading-progress');
+    if (!bar) return;
+    const update = () => {
+      const doc = document.documentElement;
+      const max = doc.scrollHeight - window.innerHeight;
+      const p = max > 0 ? Math.min(window.scrollY / max, 1) : 0;
+      bar.style.transform = `scaleX(${p})`;
+    };
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update, { passive: true });
+    update();
+  }
+  document.addEventListener('astro:page-load', initProgress);
+  initProgress();
+</script>

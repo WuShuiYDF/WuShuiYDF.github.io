@@ -1,0 +1,65 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ReadingProgress from '../../components/ReadingProgress.astro';
+import TOC from '../../components/TOC.astro';
+import Giscus from '../../components/Giscus.astro';
+import 'katex/dist/katex.min.css';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('posts', ({ data }) => !data.draft);
+  return posts.map((post) => ({ params: { id: post.id }, props: { post } }));
+}
+
+const { post } = Astro.props;
+const { Content, headings } = await render(post);
+const { title, date, updated, tags, category, summary } = post.data;
+const fmt = (d: Date) =>
+  d.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
+---
+
+<BaseLayout title={title} description={summary} width="wide">
+  <ReadingProgress />
+  <div class="mx-auto flex max-w-6xl justify-center gap-10 px-4 md:px-6">
+    <article class="w-full max-w-3xl py-12" transition:name={post.id}>
+      <header>
+        <h1 class="text-3xl font-bold leading-snug md:text-4xl">
+          <span class="glow-text">{title}</span>
+        </h1>
+        <p class="mt-4 text-sm text-[var(--color-muted)]">
+          <time datetime={date.toISOString()}>发布于 {fmt(date)}</time>
+          {updated && <span class="ml-3"><time datetime={updated.toISOString()}>更新于 {fmt(updated)}</time></span>}
+          {category && <span class="ml-3 rounded-full bg-[color-mix(in_oklab,var(--color-accent)_18%,transparent)] px-2.5 py-0.5">{category}</span>}
+        </p>
+        {
+          tags.length > 0 && (
+            <p class="mt-2 flex flex-wrap gap-2 text-xs text-[var(--color-muted)]">
+              {tags.map((t) => (
+                <a href={`/tags/${t}/`} class="transition-colors hover:text-[var(--color-accent)]">#{t}</a>
+              ))}
+            </p>
+          )
+        }
+      </header>
+
+      {
+        summary && (
+          <aside class="glass noise mt-8 border-l-4 !border-l-[var(--color-primary)] p-5">
+            <p class="text-xs font-bold tracking-widest text-[var(--color-primary)]">AI 摘要</p>
+            <p class="mt-2 text-sm leading-relaxed text-[var(--color-muted)]">{summary}</p>
+          </aside>
+        )
+      }
+
+      <div class="prose mt-10">
+        <Content />
+      </div>
+
+      <Giscus />
+    </article>
+
+    <aside class="sticky top-20 hidden h-fit w-56 shrink-0 py-12 xl:block">
+      <TOC headings={headings} />
+    </aside>
+  </div>
+</BaseLayout>

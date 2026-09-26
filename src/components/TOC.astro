@@ -1,0 +1,64 @@
+---
+import type { MarkdownHeading } from 'astro';
+
+interface Props {
+  headings: MarkdownHeading[];
+}
+const { headings } = Astro.props;
+const items = headings.filter((h) => h.depth === 2 || h.depth === 3);
+---
+
+{
+  items.length > 0 && (
+    <nav class="toc text-sm" aria-label="目录">
+      <p class="mb-3 font-bold text-[var(--color-muted)]">目录</p>
+      <ul class="space-y-1.5 border-l border-white/10">
+        {items.map((h) => (
+          <li>
+            <a
+              href={`#${h.slug}`}
+              data-toc-target={h.slug}
+              class:list={[
+                '-ml-px block border-l-2 border-transparent py-0.5 pl-3 text-[var(--color-muted)] transition-colors hover:text-[var(--color-ink)]',
+                h.depth === 3 && 'pl-6 text-xs',
+              ]}
+            >
+              {h.text}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  )
+}
+
+<style>
+  .toc :global(a.toc-active) {
+    color: var(--color-primary);
+    border-left-color: var(--color-primary);
+  }
+</style>
+
+<script>
+  function initToc() {
+    const links = document.querySelectorAll<HTMLAnchorElement>('[data-toc-target]');
+    if (links.length === 0) return;
+    const heads = Array.from(links)
+      .map((a) => document.getElementById(a.dataset.tocTarget ?? ''))
+      .filter((el): el is HTMLElement => el !== null);
+    if (heads.length === 0) return;
+    const setActive = () => {
+      let current = heads[0];
+      for (const h of heads) {
+        if (h.getBoundingClientRect().top <= 96) current = h;
+      }
+      links.forEach((a) =>
+        a.classList.toggle('toc-active', a.dataset.tocTarget === current.id),
+      );
+    };
+    window.addEventListener('scroll', setActive, { passive: true });
+    setActive();
+  }
+  document.addEventListener('astro:page-load', initToc);
+  initToc();
+</script>
