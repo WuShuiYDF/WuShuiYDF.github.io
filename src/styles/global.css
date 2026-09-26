@@ -76,14 +76,41 @@ body {
 /* 强调光晕 */
 .glow-ring { box-shadow: 0 0 20px color-mix(in oklab, var(--color-primary) 28%, transparent); }
 
-/* 主按钮：青绿实底 + 深字（照 guanyan send-btn） */
+/* 主按钮：上一版 hero CTA 的描边药丸（冷锚色版） */
 .btn-primary {
-  background: var(--color-primary);
-  color: #1e1c1b;
-  transition: background-color .2s, transform .2s;
+  border: 1px solid color-mix(in oklab, var(--color-primary) 70%, transparent);
+  background: color-mix(in oklab, var(--color-primary) 10%, transparent);
+  color: var(--color-primary);
+  transition: background-color .2s, border-color .2s;
 }
-.btn-primary:hover { background: color-mix(in oklab, var(--color-primary) 88%, #000); }
-:root[data-theme="light"] .btn-primary { color: #f8f6f1; }
+.btn-primary:hover {
+  background: color-mix(in oklab, var(--color-primary) 20%, transparent);
+  border-color: var(--color-primary);
+}
+
+/* hero 背景格栅（上一版 disk-grid 的暖色版） */
+.disk-grid {
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgb(255 255 255 / 0.025) 0 1px,
+    transparent 1px 96px
+  );
+  mask-image: linear-gradient(to bottom, transparent, black 30%, black 70%, transparent);
+}
+:root[data-theme="light"] .disk-grid {
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgb(0 0 0 / 0.03) 0 1px,
+    transparent 1px 96px
+  );
+}
+
+/* 轨道环（hero 视差装饰） */
+.orbit-ring {
+  position: absolute; border-radius: 9999px;
+  border: 1px solid rgb(255 255 255 / 0.06);
+}
+:root[data-theme="light"] .orbit-ring { border-color: rgb(0 0 0 / 0.06); }
 
 /* 噪点质感（叠加层，勿挡交互） */
 .noise { position: relative; }

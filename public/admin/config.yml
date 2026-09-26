@@ -1,0 +1,48 @@
+# Sveltia CMS 配置（Decap CMS 兼容格式）
+# 激活步骤（一次性，约 10 分钟）：
+#   1. GitHub → Settings → Developer settings → OAuth Apps → New OAuth App
+#      Homepage URL: https://wushuiydf.github.io
+#      Callback URL: （部署完第 2 步后，Worker 会给你回调地址）
+#   2. 部署 sveltia-cms-auth Worker（免费）：
+#      https://github.com/sveltia/sveltia-cms-auth —— 按 README 一键部署到 Cloudflare
+#      Workers，得到的地址形如 https://xxx.workers.dev
+#   3. 把下面 backend.base_url 换成该 Worker 地址，提交；GitHub OAuth App 的
+#      Callback URL 填 https://<worker 地址>/callback
+backend:
+  name: github
+  repo: WuShuiYDF/WuShuiYDF.github.io
+  branch: main
+  base_url: https://sveltia-cms-auth.你的子域名.workers.dev # ← 部署 Worker 后替换
+
+media_folder: public/uploads
+public_folder: /uploads
+
+site_url: https://wushuiydf.github.io
+logo_url: https://s2.loli.net/2024/06/14/VjUoPCw6gAYdFJD.png
+
+collections:
+  - name: posts
+    label: 文章
+    folder: src/content/posts
+    create: true
+    slug: '{{slug}}'
+    editor:
+      preview: true
+    fields:
+      - { label: 标题, name: title, widget: string }
+      - { label: 发布日期, name: date, widget: datetime, format: 'YYYY-MM-DDTHH:mm:ss' }
+      - { label: 标签, name: tags, widget: list, required: false, default: [] }
+      - { label: 分类, name: category, widget: string, required: false }
+      - { label: 摘要, name: summary, widget: text, required: false }
+      - { label: 封面图, name: cover, widget: string, required: false }
+      - { label: 草稿, name: draft, widget: boolean, default: false, required: false }
+      - { label: 正文, name: body, widget: markdown }
+
+  - name: pages
+    label: 页面
+    folder: src/content/pages
+    create: false
+    fields:
+      - { label: 标题, name: title, widget: string }
+      - { label: 描述, name: description, widget: string, required: false }
+      - { label: 正文, name: body, widget: markdown }

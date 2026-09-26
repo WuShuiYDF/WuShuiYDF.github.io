@@ -1,123 +1,172 @@
 ---
 import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import SectionTitle from '../components/SectionTitle.astro';
 import PostCard from '../components/PostCard.astro';
+import Narrative from '../components/Narrative.astro';
 import { NAV } from '../config';
+import linksJson from '../data/links.json';
 
 const posts = (await getCollection('posts', ({ data }) => !data.draft)).sort(
   (a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
 );
-const featured = posts.slice(0, 3);
-const words = posts.reduce((sum, p) => sum + (p.body?.length ?? 0), 0);
-const sinceSite = new Date('2024-01-25');
-const days = Math.max(1, Math.floor((Date.now() - sinceSite.valueOf()) / 86400000));
 
-const explore = [
-  { label: '归档', href: '/archives', desc: '时间轴回望' },
-  { label: '相册', href: '/gallery', desc: '镜头里的世界' },
-  { label: '一凡AI', href: '/ai', desc: '我的 AI 分身' },
-  { label: '友链', href: '/links', desc: '世界尽头的邻居' },
-];
+const tagCounts = new Map<string, number>();
+for (const p of posts) for (const t of p.data.tags) tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1);
+const tags = [...tagCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 14);
 
-const roles = ['算法', '经济学', '运筹优化', 'Web 开发', '认真生活'];
+const linkCount = (linksJson as { link_list: unknown[] }[]).reduce(
+  (n, g) => n + g.link_list.length,
+  0,
+);
+const stat = `${posts.length} 篇 · ${tags.length} 分类 · ${linkCount} 链接`;
+
+const [featured, ...rest] = posts.slice(0, 5);
 ---
 
 <BaseLayout width="wide">
-  <script type="application/json" id="roles-data" set:html={JSON.stringify(roles)}></script>
-  <!-- Hero：aurora 渐变 + 噪点 + 打字机 -->
-  <section class="noise relative flex min-h-[88svh] items-center justify-center overflow-hidden">
-    <div
-      class="aurora-a pointer-events-none absolute -top-32 left-1/4 h-[480px] w-[480px] rounded-full opacity-[0.13] blur-3xl"
-      style="background: radial-gradient(circle, var(--color-primary), transparent 65%);"
-    >
-    </div>
-    <div
-      class="aurora-b pointer-events-none absolute bottom-0 right-1/5 h-[420px] w-[420px] rounded-full opacity-[0.10] blur-3xl"
-      style="background: radial-gradient(circle, var(--color-h5c, #c99b5e), transparent 65%);"
-    >
+  <!-- Hero：左对齐满屏，双行标题遮罩揭示（照上一版 HeroFront） -->
+  <section class="relative flex min-h-[100dvh] flex-col justify-center overflow-hidden pb-10 pt-16">
+    <div aria-hidden class="disk-grid pointer-events-none absolute inset-0"></div>
+    <div aria-hidden class="pointer-events-none absolute inset-0 overflow-hidden">
+      <span class="orbit-ring right-[-10%] top-[12%] h-[420px] w-[420px]"></span>
+      <span class="orbit-ring right-[2%] top-[26%] h-[260px] w-[260px]"></span>
+      <span class="orbit-ring right-[-2%] bottom-[8%] h-[560px] w-[560px]"></span>
+      <span
+        class="absolute right-[16%] top-[38%] h-2 w-2 rounded-full bg-[var(--color-primary)] opacity-70"
+      ></span>
     </div>
 
-    <div class="relative z-10 px-4 text-center">
-      <p class="kicker">Hello, World</p>
-      <h1 class="mt-6 text-4xl font-bold leading-tight md:text-6xl">
-        你好，我是<span class="glow-text">无水有点烦</span>
+    <div class="relative mx-auto w-full max-w-5xl px-5">
+      <p class="kicker">Deep-Time Personal Blog</p>
+
+      <h1 class="mt-8 text-[clamp(2.8rem,11vw,6.4rem)] font-bold leading-[1.02] tracking-[-0.03em]">
+        <span class="block overflow-hidden pb-1">
+          <span class="hero-line block will-change-transform" style="animation-delay: .1s">无水有点烦的</span>
+        </span>
+        <span class="block overflow-hidden pb-1">
+          <span class="hero-line block will-change-transform" style="animation-delay: .23s">博客</span>
+        </span>
       </h1>
-      <p class="mt-5 text-lg text-[var(--color-muted)] md:text-xl">
-        一个爱折腾
-        <span class="font-mono font-bold text-[var(--color-primary)]" id="typewriter">&nbsp;</span><span class="animate-pulse">▌</span>
-        的大学生
-      </p>
-      <div class="mt-10 flex flex-wrap items-center justify-center gap-4">
+
+      <div class="mt-8 flex max-w-xl flex-col gap-3">
+        <p class="text-[1.05rem] leading-relaxed text-[var(--color-muted)]">
+          把运筹、经济学、代码与生活的日常，写成能回滚的叙事。
+        </p>
+        <p class="font-mono text-[0.78rem] tracking-wide text-[var(--color-muted)]">{stat}</p>
+      </div>
+
+      <div class="mt-10 flex flex-wrap items-center gap-5">
         <a
-          href="/posts/"
-          class="magnetic btn-primary glow-ring rounded-full px-8 py-3 font-bold"
+          href="#latest"
+          class="group inline-flex items-center gap-2 rounded-full border border-[color-mix(in_oklab,var(--color-primary)_70%,transparent)] bg-[color-mix(in_oklab,var(--color-primary)_10%,transparent)] px-6 py-3 text-[0.95rem] font-semibold text-[var(--color-primary)] transition-colors hover:bg-[color-mix(in_oklab,var(--color-primary)_20%,transparent)]"
         >
-          开始阅读
+          最新文章
+          <svg class="h-4 w-4 transition-transform duration-300 group-hover:translate-y-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14m0 0-6-6m6 6 6-6" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
         </a>
-        <a
-          href="/about/"
-          class="magnetic rounded-full border border-white/15 px-8 py-3 font-bold text-[var(--color-ink)] transition-colors hover:border-[var(--color-primary)]"
-        >
-          关于我
+        <a href="/archives/" class="inline-flex items-center gap-1.5 text-[0.92rem] text-[var(--color-muted)] transition-colors hover:text-[var(--color-primary)]">
+          全部归档
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14m0 0-6-6m6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
         </a>
       </div>
     </div>
   </section>
 
-  <!-- 数据卡 -->
-  <section class="mx-auto grid max-w-4xl gap-5 px-4 sm:grid-cols-3">
-    {
-      [
-        { label: '文章', value: posts.length, suffix: ' 篇' },
-        { label: '总字数', value: Math.max(1, Math.round(words / 1000)), suffix: ' k 字' },
-        { label: '建站', value: days, suffix: ' 天' },
-      ].map((s) => (
-        <div class="reveal glass noise p-6 text-center">
-          <p class="text-3xl font-bold">
-            <span class="glow-text" data-count={s.value}>0</span>
-            <span class="text-sm font-normal text-[var(--color-muted)]">{s.suffix}</span>
-          </p>
-          <p class="mt-1 text-sm text-[var(--color-muted)]">{s.label}</p>
+  <!-- 最新文章：featured 大卡 + 两列错落 -->
+  <section id="latest" class="mx-auto max-w-5xl scroll-mt-20 px-5">
+    <h2 class="text-2xl font-bold tracking-tight text-[var(--color-ink)]">最新文章</h2>
+    <div class="mt-8 grid gap-4 lg:grid-cols-2">
+      {featured && (
+        <div class="reveal lg:col-span-2">
+          <PostCard post={featured} featured />
         </div>
-      ))
-    }
-  </section>
-
-  <!-- 精选文章 -->
-  <section class="mx-auto mt-16 max-w-6xl px-4 md:px-6">
-    <div class="flex items-end justify-between">
-      <SectionTitle title="最新文章" kicker="Latest" />
-      <a href="/posts/" class="text-sm text-[var(--color-muted)] transition-colors hover:text-[var(--color-primary)]">
-        全部文章 →
-      </a>
-    </div>
-    <div class="mt-6 grid gap-5 md:grid-cols-3">
-      {featured.map((post) => <PostCard post={post} />)}
+      )}
+      {rest.map((p) => (
+        <div class="reveal">
+          <PostCard post={p} />
+        </div>
+      ))}
     </div>
   </section>
 
-  <!-- 探索入口 -->
-  <section class="mx-auto mt-16 max-w-6xl px-4 pb-20 md:px-6">
-    <SectionTitle title="探索" kicker="Explore" />
-    <div class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+  <!-- 编辑体宣言（整段大字） -->
+  <section class="mx-auto mt-28 max-w-3xl px-5 text-center">
+    <p class="text-[clamp(1.6rem,5vw,2.6rem)] font-bold leading-snug tracking-tight text-[var(--color-ink)]">
+      这里不赶工，只把沉下心研究的东西慢慢讲清。
+    </p>
+    <p class="mx-auto mt-6 max-w-md text-[0.95rem] leading-relaxed text-[var(--color-muted)]">
+      从线性规划解炉石，到宏观经济学的拷打，每一篇都从一个真问题出发。
+    </p>
+  </section>
+
+  <!-- GSAP pin 叙事段 -->
+  <Narrative />
+
+  <!-- 标签墙 -->
+  <section class="mx-auto max-w-5xl px-5">
+    <h2 class="text-2xl font-bold tracking-tight text-[var(--color-ink)]">标签墙</h2>
+    <div class="mt-8 flex flex-wrap gap-2.5">
       {
-        explore.map((item, i) => (
+        tags.map(([name, count]) => (
           <a
-            href={item.href}
-            class="reveal glass noise group p-6 transition-transform duration-300 hover:-translate-y-1"
-            style={`transition-delay: ${i * 60}ms`}
+            href={`/tags/${name}/`}
+            class="rounded-full border border-white/[0.08] px-3.5 py-1.5 font-mono text-[0.82rem] text-[var(--color-muted)] transition-all hover:-translate-y-0.5 hover:border-[color-mix(in_oklab,var(--color-primary)_60%,transparent)] hover:text-[var(--color-primary)]"
           >
-            <p class="text-lg font-bold transition-colors group-hover:text-[var(--color-primary)]">{item.label}</p>
-            <p class="mt-1 text-sm text-[var(--color-muted)]">{item.desc}</p>
+            #{name}
+            <span class="ml-1.5 text-[0.7em] opacity-70">{count}</span>
           </a>
         ))
       }
     </div>
   </section>
 
+  <!-- 关于 + AI 两栏 -->
+  <section class="mx-auto mt-28 grid max-w-5xl gap-6 px-5 lg:grid-cols-2">
+    <div class="flex flex-col justify-between rounded-xl border border-white/[0.08] bg-[var(--color-surface)] p-8">
+      <div>
+        <h2 class="text-2xl font-bold tracking-tight text-[var(--color-ink)]">关于我</h2>
+        <p class="mt-4 max-w-md leading-relaxed text-[var(--color-muted)]">
+          西安交通大学管理学院在读。喜欢用数学和代码把生活中的决策讲清楚，也喜欢记录日常里那些值得留下的片刻。
+        </p>
+      </div>
+      <a
+        href="/about/"
+        class="group mt-8 inline-flex w-fit items-center gap-2 text-[0.95rem] font-medium text-[var(--color-primary)]"
+      >
+        讲讲我自己
+        <svg class="h-4 w-4 transition-transform group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M5 12h14m0 0-6-6m6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </a>
+    </div>
+
+    <div class="flex flex-col justify-between rounded-xl border border-[color-mix(in_oklab,var(--color-primary)_35%,transparent)] bg-[color-mix(in_oklab,var(--color-primary)_5%,transparent)] p-8">
+      <div>
+        <div class="flex items-center gap-2 font-mono text-[0.72rem] uppercase tracking-[0.2em] text-[var(--color-primary)]">
+          AI
+        </div>
+        <h2 class="mt-4 text-2xl font-bold tracking-tight text-[var(--color-ink)]">一凡AI</h2>
+        <p class="mt-4 leading-relaxed text-[var(--color-muted)]">
+          我用 Coze 搭的 AI 小助手：日常问答、学习辅助和一些奇奇怪怪的小任务。实验性功能，内容由 AI 生成。
+        </p>
+      </div>
+      <a
+        href="/ai/"
+        class="group mt-8 inline-flex w-fit items-center gap-2 text-[0.95rem] font-medium text-[var(--color-primary)]"
+      >
+        开始对话
+        <svg class="h-4 w-4 transition-transform group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M5 12h14m0 0-6-6m6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </a>
+    </div>
+  </section>
+
   <noscript>
-    <nav class="mx-auto max-w-3xl px-4 pb-16 text-center">
+    <nav class="mx-auto max-w-3xl px-5 pb-16 text-center">
       <p class="font-bold">站点导航</p>
       <p class="mt-3 flex flex-wrap justify-center gap-4">
         {NAV.map((item) => <a href={item.href}>{item.label}</a>)}
@@ -130,67 +179,15 @@ const roles = ['算法', '经济学', '运筹优化', 'Web 开发', '认真生�
   </noscript>
 </BaseLayout>
 
-<script>
-  // 打字机：轮播角色词
-  function initTypewriter() {
-    const el = document.getElementById('typewriter');
-    if (!el || el.dataset.bound) return;
-    el.dataset.bound = '1';
-    const data = document.getElementById('roles-data');
-    const words: string[] = data ? JSON.parse(data.textContent ?? '[]') : [];
-    if (words.length === 0) return;
-    let wi = 0, ci = 0, deleting = false;
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduced) { el.textContent = words[0]; return; }
-    const tick = () => {
-      const word = words[wi];
-      ci += deleting ? -1 : 1;
-      el.textContent = word.slice(0, ci);
-      let delay = deleting ? 60 : 140;
-      if (!deleting && ci === word.length) { delay = 1800; deleting = true; }
-      else if (deleting && ci === 0) { deleting = false; wi = (wi + 1) % words.length; delay = 400; }
-      setTimeout(tick, delay);
-    };
-    tick();
+<style is:global>
+  @keyframes hero-rise {
+    from { transform: translateY(115%); }
+    to { transform: translateY(0); }
   }
-
-  // 数字滚动
-  function initCounters() {
-    document.querySelectorAll<HTMLElement>('[data-count]').forEach((el) => {
-      if (el.dataset.countDone) return;
-      el.dataset.countDone = '1';
-      const target = Number(el.dataset.count ?? 0);
-      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      if (reduced || target === 0) { el.textContent = String(target); return; }
-      const t0 = performance.now();
-      const dur = 1200;
-      const step = (t: number) => {
-        const p = Math.min((t - t0) / dur, 1);
-        const eased = 1 - Math.pow(1 - p, 3);
-        el.textContent = String(Math.round(target * eased));
-        if (p < 1) requestAnimationFrame(step);
-      };
-      requestAnimationFrame(step);
-    });
+  .hero-line {
+    animation: hero-rise 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
-
-  // 磁性按钮：轻微跟随鼠标
-  function initMagnets() {
-    document.querySelectorAll<HTMLElement>('.magnetic').forEach((el) => {
-      if (el.dataset.magnetBound) return;
-      el.dataset.magnetBound = '1';
-      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      if (reduced) return;
-      el.addEventListener('mousemove', (e) => {
-        const r = el.getBoundingClientRect();
-        const dx = ((e.clientX - r.left) / r.width - 0.5) * 10;
-        const dy = ((e.clientY - r.top) / r.height - 0.5) * 8;
-        el.style.translate = `${dx}px ${dy}px`;
-      });
-      el.addEventListener('mouseleave', () => { el.style.translate = '0px 0px'; });
-    });
+  @media (prefers-reduced-motion: reduce) {
+    .hero-line { animation: none; }
   }
-
-  document.addEventListener('astro:page-load', () => { initTypewriter(); initCounters(); initMagnets(); });
-  initTypewriter(); initCounters(); initMagnets();
-</script>
+</style>

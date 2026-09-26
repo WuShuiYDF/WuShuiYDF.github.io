@@ -7,66 +7,65 @@ const isActive = (href: string) =>
   href === '/' ? path === '/' : path === href || path.startsWith(href + '/');
 ---
 
-<header
-  class="glass noise sticky top-0 z-50 rounded-none border-x-0 border-t-0 px-4 md:px-6"
->
-  <div class="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4">
-    <a href="/" class="shrink-0 text-lg font-bold tracking-wide">
-      <span class="glow-text">{SITE.name}</span>
+<header class="sticky top-0 z-40 border-b border-white/[0.07] bg-[color-mix(in_oklab,var(--color-bg)_78%,transparent)] backdrop-blur-md">
+  <div class="mx-auto flex h-14 max-w-5xl items-center justify-between px-5">
+    <a href="/" class="group flex items-baseline gap-2">
+      <span class="text-[0.95rem] font-bold tracking-tight text-[var(--color-ink)]">{SITE.subtitle}</span>
+      <span class="hidden font-mono text-[0.68rem] text-[var(--color-muted)] transition-colors group-hover:text-[var(--color-primary)] sm:inline">wushuiydf.com</span>
     </a>
 
-    <nav class="hidden items-center gap-1 md:flex" aria-label="主导航">
+    <nav class="hidden items-center gap-6 md:flex" aria-label="主导航">
       {
         NAV.map((item) => (
           <a
             href={item.href}
             aria-current={isActive(item.href) ? 'page' : undefined}
             class:list={[
-              'rounded-full px-3 py-1.5 text-sm transition-colors',
-              isActive(item.href)
-                ? 'bg-[color-mix(in_oklab,var(--color-primary)_22%,transparent)] text-[var(--color-ink)]'
-                : 'text-[var(--color-muted)] hover:text-[var(--color-ink)]',
+              'relative text-[0.9rem] tracking-wide transition-colors duration-200 hover:text-[var(--color-primary)]',
+              isActive(item.href) ? 'text-[var(--color-ink)]' : 'text-[var(--color-muted)]',
             ]}
           >
             {item.label}
+            <span
+              class:list={[
+                'absolute -bottom-1 left-0 h-px bg-[var(--color-primary)] transition-all duration-300',
+                isActive(item.href) ? 'w-full opacity-80' : 'w-0 opacity-0',
+              ]}
+            />
           </a>
         ))
       }
+      <ThemeToggle />
     </nav>
 
-    <div class="flex items-center gap-2">
-      <ThemeToggle />
-      <details class="relative md:hidden">
-        <summary
-          class="flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-full border border-white/10 text-[var(--color-ink)]"
-          aria-label="打开菜单"
-        >
-          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round" />
-          </svg>
-        </summary>
-        <nav
-          class="glass absolute right-0 top-11 z-50 flex w-44 flex-col p-2"
-          aria-label="移动端导航"
-        >
-          {
-            NAV.map((item) => (
-              <a
-                href={item.href}
-                aria-current={isActive(item.href) ? 'page' : undefined}
-                class:list={[
-                  'rounded-lg px-3 py-2 text-sm',
-                  isActive(item.href)
-                    ? 'bg-[color-mix(in_oklab,var(--color-primary)_22%,transparent)] text-[var(--color-ink)]'
-                    : 'text-[var(--color-muted)] hover:text-[var(--color-ink)]',
-                ]}
-              >
-                {item.label}
-              </a>
-            ))
-          }
-        </nav>
-      </details>
-    </div>
+    <details class="relative md:hidden">
+      <summary
+        class="flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-md border border-white/[0.08] text-[var(--color-ink)]"
+        aria-label="打开菜单"
+      >
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round" />
+        </svg>
+      </summary>
+      <nav
+        class="absolute inset-x-[-20px] top-12 flex flex-col gap-1 rounded-lg border border-white/[0.07] bg-[color-mix(in_oklab,var(--color-bg)_95%,transparent)] px-4 pb-4 pt-2"
+        aria-label="移动端导航"
+      >
+        {
+          NAV.map((item) => (
+            <a
+              href={item.href}
+              class:list={[
+                'rounded-md px-3 py-2.5 text-[0.95rem] transition-colors hover:bg-[var(--color-surface)]',
+                isActive(item.href) ? 'text-[var(--color-primary)]' : 'text-[var(--color-muted)]',
+              ]}
+            >
+              {item.label}
+            </a>
+          ))
+        }
+        <div class="mt-1 pl-3"><ThemeToggle /></div>
+      </nav>
+    </details>
   </div>
 </header>
