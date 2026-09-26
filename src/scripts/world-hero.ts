@@ -3,6 +3,10 @@
 // 拖拽旋转 / 鼠标视差 / 入场动画 / 待机（眨眼·摆臂·挥手·点击跳跃）/ 主题自适应雾
 // 后台标签页暂停 / reduced-motion 静帧 / WebGL 失败自动移除（CSS 轨道环兜底）
 import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 export interface WorldHeroHandle {
   dispose: () => void;
@@ -73,17 +77,37 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
   if (!isMobile) renderer.domElement.style.cursor = 'grab';
   container.appendChild(renderer.domElement);
 
+
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 100);
   camera.position.set(0, 1.2, 6.2);
 
-  // 雾随主题变色
+  // 背景/雾同色随主题（canvas 全幅，泛光后期需要不透明背景）
   const fogColor = new THREE.Color(
     document.documentElement.dataset.theme === 'light' ? 0xfaf7f1 : 0x262322,
   );
+  scene.background = fogColor;
   scene.fog = new THREE.Fog(fogColor, 8, 15);
+
+  // 场景内地面网格（雾中渐隐，替代 CSS 格栅）
+  const grid = new THREE.GridHelper(36, 46, 0x6db3a3, 0x6b6259);
+  (grid.material as THREE.Material).transparent = true;
+  (grid.material as THREE.Material).opacity = 0.14;
+  grid.position.set(0.55, -2.6, 0);
+  scene.add(grid);
+  // Bloom 泛光（桌面端）：发光体（眼睛/水晶/池塘/萤火/辉光贴片）产生柔光
+  // Bloom 泛光在无硬件 GPU（软渲染）下会渲染失败，默认关闭；加 ?bloom=1 可在真机上体验
+  const useBloom = !isMobile && !reduced && location.search.includes("bloom");
+  let composer: EffectComposer | null = null;
+  if (useBloom) {
+    composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
+    composer.addPass(new UnrealBloomPass(new THREE.Vector2(width, height), 0.45, 0.75, 0.78));
+    composer.addPass(new OutputPass());
+  }
   const fogObserver = new MutationObserver(() => {
     fogColor.set(document.documentElement.dataset.theme === 'light' ? 0xfaf7f1 : 0x262322);
+    grid.material.needsUpdate = true;
   });
   fogObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
@@ -226,6 +250,16 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
   // 岛底辉光
   addGlow(island, 0x6db3a3, 3.4, [0, -1.5, 0], 0.4);
 
+  // 流星（每 7~13s 一颗，从右上划向左下）
+  const meteor = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: glowTex, color: 0xbfeee2, transparent: true, opacity: 0,
+    blending: THREE.AdditiveBlending, depthWrite: false,
+  }));
+  meteor.scale.set(2.2, 0.35, 1);
+  scene.add(meteor);
+  let meteorStart = -10;
+  const nextMeteorIn = () => 7 + Math.random() * 6;
+
   // ── 卫星岛 ×2 ──
   const sat1 = makeIsland(0.36);
   sat1.group.position.set(-1.85, 1.0, -1.6);
@@ -259,12 +293,12 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
   const ringMat = new THREE.MeshBasicMaterial({ color: 0x6db3a3, transparent: true, opacity: 0.22, side: THREE.DoubleSide });
   const ring1 = new THREE.Mesh(new THREE.TorusGeometry(1.8, 0.009, 8, 100), ringMat);
   ring1.rotation.x = Math.PI / 2.15;
-  ring1.position.set(0.55, 0.1, 0);
+  ring1.position.set(0.55, 0.38, 0);
   scene.add(ring1);
   const ring2 = new THREE.Mesh(new THREE.TorusGeometry(2.25, 0.006, 8, 100), ringMat);
   ring2.rotation.x = Math.PI / 1.85;
   ring2.rotation.y = 0.4;
-  ring2.position.set(0.55, 0.25, 0);
+  ring2.position.set(0.55, 0.58, 0);
   scene.add(ring2);
 
   // ── 小机器人 v3：大头比例 / 耳罩 / 胸口核心 / 挥手 ──
@@ -406,6 +440,7 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
   const nextWaveIn = () => 6 + Math.random() * 5;
   let lastWave = -10;
   let nextWave = nextWaveIn();
+  let nextMeteor = 3 + Math.random() * 4;
   const camTarget = new THREE.Vector3();
 
   const tick = () => {
@@ -442,6 +477,25 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
     });
     ring1.rotation.z += 0.0011;
     ring2.rotation.z -= 0.0007;
+
+    // 流星动画
+    const mAge = t - meteorStart;
+    if (mAge > nextMeteor) {
+      meteorStart = t;
+      nextMeteor = nextMeteorIn();
+    }
+    if (mAge >= 0 && mAge < 1.1) {
+      const p = mAge / 1.1;
+      meteor.position.set(2.6 - p * 5.2, 2.8 - p * 2.6, -2.2);
+      (meteor.material as THREE.SpriteMaterial).opacity = Math.sin(p * Math.PI) * 0.9;
+    } else {
+      (meteor.material as THREE.SpriteMaterial).opacity = 0;
+    }
+
+    // 池塘涟漪（呼吸缩放）+ 天线灯呼吸
+    pond.scale.setScalar(1 + Math.sin(t * 1.8) * 0.04);
+    const eyePulse = 2.2 + Math.sin(t * 2.4) * 0.6;
+    (antTip.material as THREE.MeshStandardMaterial).emissiveIntensity = eyePulse;
 
     // 机器人：呼吸悬浮 / 摆臂 / 看鼠标 / 眨眼 / 挥手 / 跳跃
     let jump = 0;
@@ -494,7 +548,8 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
     camera.position.y = THREE.MathUtils.lerp(camera.position.y, camTarget.y, 0.05);
     camera.position.z = THREE.MathUtils.lerp(camera.position.z, camTarget.z, 0.05);
     camera.lookAt(0.55, 0.3, 0);
-    renderer.render(scene, camera);
+    if (composer) composer.render();
+    else renderer.render(scene, camera);
     if (visible && !reduced) raf = requestAnimationFrame(tick);
   };
 
@@ -521,6 +576,7 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
     renderer.setSize(w, h);
+    composer?.setSize(w, h);
     if (reduced) renderer.render(scene, camera);
   });
   ro.observe(container);
@@ -544,6 +600,7 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
           });
         }
       });
+      composer?.dispose();
       renderer.dispose();
       renderer.domElement.remove();
     },

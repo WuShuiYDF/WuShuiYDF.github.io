@@ -1,21 +1,23 @@
 ---
-// mimo 风格 3D 首屏挂载点：视口内才动态加载 three.js 场景（独立 chunk）；
-// WebGL 失败 / reduced-motion 降级时保留 CSS 轨道环兜底
+// mimo 风格 3D 首屏挂载点：全幅 canvas（场景自带背景与雾），
+// 视口内才动态加载 three.js 场景 chunk；
+// WebGL 失败时 canvas 移除，露出底层 CSS 轨道环/格栅兜底
 ---
 
 <div class="world-hero absolute inset-0 overflow-hidden" data-world-hero>
+  <div class="absolute inset-0" data-world-canvas></div>
+  <!-- 文字可读性渐变遮罩（左浓右淡，主题自适应） -->
   <div
-    class="world-canvas absolute inset-y-0 right-0 h-full w-full md:w-[54%]"
-    data-world-canvas
+    class="pointer-events-none absolute inset-0"
+    style="background: linear-gradient(90deg, var(--color-bg) 22%, color-mix(in oklab, var(--color-bg) 55%, transparent) 42%, transparent 62%);"
   >
   </div>
 </div>
 
 <style>
   @media (max-width: 767px) {
-    .world-canvas {
-      opacity: 0.45;
-      pointer-events: none;
+    .world-hero [data-world-canvas] {
+      pointer-events: none; /* 移动端把触摸让给滚动 */
     }
   }
 </style>
@@ -28,7 +30,11 @@
     const section = document.querySelector<HTMLElement>('[data-world-hero]');
     if (!canvasHost || !section || canvasHost.childElementCount > 0) return;
     const { initWorldHero } = await import('../scripts/world-hero');
-    handle = initWorldHero(canvasHost);
+    try {
+      handle = initWorldHero(canvasHost);
+    } catch (e) {
+      section.dataset.worldError = String(e);
+    }
     if (!handle) section.dataset.worldFailed = '1'; // WebGL 不可用：CSS 兜底继续显示
   }
 
