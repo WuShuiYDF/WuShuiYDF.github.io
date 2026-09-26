@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.astro/
+.ai-cache/
+.superpowers/
+.DS_Store
