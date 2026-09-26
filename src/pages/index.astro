@@ -1,13 +1,196 @@
 ---
+import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import GlassCard from '../components/GlassCard.astro';
+import SectionTitle from '../components/SectionTitle.astro';
+import PostCard from '../components/PostCard.astro';
+import { NAV, SITE } from '../config';
+
+const posts = (await getCollection('posts', ({ data }) => !data.draft)).sort(
+  (a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
+);
+const featured = posts.slice(0, 3);
+const words = posts.reduce((sum, p) => sum + (p.body?.length ?? 0), 0);
+const sinceSite = new Date('2024-01-25');
+const days = Math.max(1, Math.floor((Date.now() - sinceSite.valueOf()) / 86400000));
+
+const explore = [
+  { label: '归档', href: '/archives', desc: '时间轴回望' },
+  { label: '相册', href: '/gallery', desc: '镜头里的世界' },
+  { label: '一凡AI', href: '/ai', desc: '我的 AI 分身' },
+  { label: '友链', href: '/links', desc: '世界尽头的邻居' },
+];
+
+const roles = ['算法', '经济学', '运筹优化', 'Web 开发', '认真生活'];
 ---
 
-<BaseLayout>
-  <div class="py-24">
-    <GlassCard>
-      <h1 class="text-3xl font-bold"><span class="glow-text">WSYDF World</span></h1>
-      <p class="mt-3 text-[var(--color-muted)]">施工中：M1 进行中，首页将于 T9 上线。</p>
-    </GlassCard>
-  </div>
+<BaseLayout width="wide">
+  <script type="application/json" id="roles-data" set:html={JSON.stringify(roles)}></script>
+  <!-- Hero：aurora 渐变 + 噪点 + 打字机 -->
+  <section class="noise relative flex min-h-[88svh] items-center justify-center overflow-hidden">
+    <div
+      class="aurora-a pointer-events-none absolute -top-32 left-1/4 h-[480px] w-[480px] rounded-full opacity-30 blur-3xl"
+      style="background: radial-gradient(circle, var(--color-primary), transparent 65%);"
+    >
+    </div>
+    <div
+      class="aurora-b pointer-events-none absolute bottom-0 right-1/5 h-[420px] w-[420px] rounded-full opacity-25 blur-3xl"
+      style="background: radial-gradient(circle, var(--color-accent), transparent 65%);"
+    >
+    </div>
+
+    <div class="relative z-10 px-4 text-center">
+      <p class="font-mono text-sm tracking-[0.3em] text-[var(--color-muted)]">HELLO, WORLD</p>
+      <h1 class="mt-6 text-4xl font-bold leading-tight md:text-6xl">
+        你好，我是<span class="glow-text">无水有点烦</span>
+      </h1>
+      <p class="mt-5 text-lg text-[var(--color-muted)] md:text-xl">
+        一个爱折腾
+        <span class="font-mono font-bold text-[var(--color-accent)]" id="typewriter">&nbsp;</span><span class="animate-pulse">▌</span>
+        的大学生
+      </p>
+      <div class="mt-10 flex flex-wrap items-center justify-center gap-4">
+        <a
+          href="/posts/"
+          class="magnetic glow-ring rounded-full bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] px-8 py-3 font-bold text-white transition-transform"
+        >
+          开始阅读
+        </a>
+        <a
+          href="/about/"
+          class="magnetic rounded-full border border-white/15 px-8 py-3 font-bold text-[var(--color-ink)] transition-colors hover:border-[var(--color-primary)]"
+        >
+          关于我
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 数据卡 -->
+  <section class="mx-auto grid max-w-4xl gap-5 px-4 sm:grid-cols-3">
+    {
+      [
+        { label: '文章', value: posts.length, suffix: ' 篇' },
+        { label: '总字数', value: Math.max(1, Math.round(words / 1000)), suffix: ' k 字' },
+        { label: '建站', value: days, suffix: ' 天' },
+      ].map((s) => (
+        <div class="reveal glass noise p-6 text-center">
+          <p class="text-3xl font-bold">
+            <span class="glow-text" data-count={s.value}>0</span>
+            <span class="text-sm font-normal text-[var(--color-muted)]">{s.suffix}</span>
+          </p>
+          <p class="mt-1 text-sm text-[var(--color-muted)]">{s.label}</p>
+        </div>
+      ))
+    }
+  </section>
+
+  <!-- 精选文章 -->
+  <section class="mx-auto mt-16 max-w-6xl px-4 md:px-6">
+    <div class="flex items-end justify-between">
+      <SectionTitle title="最新文章" />
+      <a href="/posts/" class="text-sm text-[var(--color-muted)] transition-colors hover:text-[var(--color-accent)]">
+        全部文章 →
+      </a>
+    </div>
+    <div class="mt-6 grid gap-5 md:grid-cols-3">
+      {featured.map((post) => <PostCard post={post} />)}
+    </div>
+  </section>
+
+  <!-- 探索入口 -->
+  <section class="mx-auto mt-16 max-w-6xl px-4 pb-20 md:px-6">
+    <SectionTitle title="探索" />
+    <div class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      {
+        explore.map((item, i) => (
+          <a
+            href={item.href}
+            class="reveal glass noise group p-6 transition-transform duration-300 hover:-translate-y-1"
+            style={`transition-delay: ${i * 60}ms`}
+          >
+            <p class="text-lg font-bold transition-colors group-hover:text-[var(--color-primary)]">{item.label}</p>
+            <p class="mt-1 text-sm text-[var(--color-muted)]">{item.desc}</p>
+          </a>
+        ))
+      }
+    </div>
+  </section>
+
+  <noscript>
+    <nav class="mx-auto max-w-3xl px-4 pb-16 text-center">
+      <p class="font-bold">站点导航</p>
+      <p class="mt-3 flex flex-wrap justify-center gap-4">
+        {NAV.map((item) => <a href={item.href}>{item.label}</a>)}
+      </p>
+      <p class="mt-6 font-bold">最新文章</p>
+      <p class="mt-3 flex flex-col gap-2">
+        {posts.map((p) => <a href={`/posts/${p.id}/`}>{p.data.title}</a>)}
+      </p>
+    </nav>
+  </noscript>
 </BaseLayout>
+
+<script>
+  // 打字机：轮播角色词
+  function initTypewriter() {
+    const el = document.getElementById('typewriter');
+    if (!el || el.dataset.bound) return;
+    el.dataset.bound = '1';
+    const data = document.getElementById('roles-data');
+    const words: string[] = data ? JSON.parse(data.textContent ?? '[]') : [];
+    if (words.length === 0) return;
+    let wi = 0, ci = 0, deleting = false;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduced) { el.textContent = words[0]; return; }
+    const tick = () => {
+      const word = words[wi];
+      ci += deleting ? -1 : 1;
+      el.textContent = word.slice(0, ci);
+      let delay = deleting ? 60 : 140;
+      if (!deleting && ci === word.length) { delay = 1800; deleting = true; }
+      else if (deleting && ci === 0) { deleting = false; wi = (wi + 1) % words.length; delay = 400; }
+      setTimeout(tick, delay);
+    };
+    tick();
+  }
+
+  // 数字滚动
+  function initCounters() {
+    document.querySelectorAll<HTMLElement>('[data-count]').forEach((el) => {
+      if (el.dataset.countDone) return;
+      el.dataset.countDone = '1';
+      const target = Number(el.dataset.count ?? 0);
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (reduced || target === 0) { el.textContent = String(target); return; }
+      const t0 = performance.now();
+      const dur = 1200;
+      const step = (t: number) => {
+        const p = Math.min((t - t0) / dur, 1);
+        const eased = 1 - Math.pow(1 - p, 3);
+        el.textContent = String(Math.round(target * eased));
+        if (p < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    });
+  }
+
+  // 磁性按钮：轻微跟随鼠标
+  function initMagnets() {
+    document.querySelectorAll<HTMLElement>('.magnetic').forEach((el) => {
+      if (el.dataset.magnetBound) return;
+      el.dataset.magnetBound = '1';
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (reduced) return;
+      el.addEventListener('mousemove', (e) => {
+        const r = el.getBoundingClientRect();
+        const dx = ((e.clientX - r.left) / r.width - 0.5) * 10;
+        const dy = ((e.clientY - r.top) / r.height - 0.5) * 8;
+        el.style.translate = `${dx}px ${dy}px`;
+      });
+      el.addEventListener('mouseleave', () => { el.style.translate = '0px 0px'; });
+    });
+  }
+
+  document.addEventListener('astro:page-load', () => { initTypewriter(); initCounters(); initMagnets(); });
+  initTypewriter(); initCounters(); initMagnets();
+</script>

@@ -126,3 +126,18 @@ body {
 :root[data-theme="light"] .prose details { border-color: rgb(15 23 42 / 0.08); }
 .prose summary { cursor: pointer; font-weight: 600; padding: 0.4em 0; }
 .prose summary:hover { color: var(--color-primary); }
+
+/* ===== 首页动效 ===== */
+@keyframes drift-a {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(6vw, 4vh) scale(1.15); }
+}
+@keyframes drift-b {
+  0%, 100% { transform: translate(0, 0) scale(1.1); }
+  50% { transform: translate(-5vw, -3vh) scale(0.95); }
+}
+.aurora-a { animation: drift-a 18s ease-in-out infinite; }
+.aurora-b { animation: drift-b 22s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .aurora-a, .aurora-b { animation: none; }
+}
