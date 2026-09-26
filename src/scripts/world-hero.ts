@@ -110,7 +110,7 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
   const grid = new THREE.GridHelper(36, 46, 0x6db3a3, 0x6b6259);
   (grid.material as THREE.Material).transparent = true;
   (grid.material as THREE.Material).opacity = 0.14;
-  grid.position.set(0.55, -2.6, 0);
+  grid.position.set(0.9, -2.8, 0);
   scene.add(grid);
   // Studio 环境贴图：给所有 PBR 材质带来陶瓷/塑料反光质感（threeui 式材质感的核心）
   const pmrem = new THREE.PMREMGenerator(renderer);
@@ -163,7 +163,7 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
   rimLight.position.set(-4, 2.4, -3);
   scene.add(rimLight);
   const under = new THREE.PointLight(0x6db3a3, 9, 11);
-  under.position.set(-1.5, -1.8, 1.3);
+  under.position.set(-0.7, -1.9, 1.3);
   scene.add(under);
 
   const mat = (color: number, rough = 0.95) =>
@@ -183,28 +183,78 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
     return s;
   }
 
-  // ── 岛生成器（有机岩石 + 草地顶盖） ──
+  // ── 岛生成器：平坦台地 + 倒锥岩底 + 层叠岩架 + 缘石垂草（经典浮岛剖面） ──
   function makeIsland(size: number): { group: THREE.Group; topY: number } {
     const g = new THREE.Group();
-    // 岩石主体：向下拉长的有机岩石
-    const soil = new THREE.Mesh(makeRock(0.98 * size, 3, 0.1, 1.6), mat(0x322d29));
-    soil.position.y = -0.52 * size;
-    soil.castShadow = true;
-    soil.receiveShadow = true;
-    g.add(soil);
+
+    // 台地：宽扁有机圆盘（顶部平台）
+    const plateau = new THREE.Mesh(makeRock(1.3 * size, 3, 0.05, 0.16), mat(0x3a342f));
+    plateau.scale.y = 0.5;
+    plateau.castShadow = true;
+    plateau.receiveShadow = true;
+    g.add(plateau);
+
+    // 倒锥岩底：带噪声的锥体（上宽下尖，棱角参差）
+    const coneGeo = new THREE.ConeGeometry(1.12 * size, 1.7 * size, 11, 5, true);
+    coneGeo.rotateX(Math.PI);
+    coneGeo.translate(0, -0.85 * size, 0);
+    const cPos = coneGeo.getAttribute('position') as THREE.BufferAttribute;
+    const cv = new THREE.Vector3();
+    for (let i = 0; i < cPos.count; i++) {
+      cv.fromBufferAttribute(cPos, i);
+      const n = noise3(cv.x * 2.2 / size, cv.y * 1.6 / size, cv.z * 2.2 / size);
+      cv.x += n * 0.09 * size;
+      cv.z += n * 0.07 * size;
+      if (cv.y < -0.2 * size) cv.y += n * 0.05 * size;
+      cPos.setXYZ(i, cv.x, cv.y, cv.z);
+    }
+    coneGeo.computeVertexNormals();
+    const cone = new THREE.Mesh(coneGeo, mat(0x322d29));
+    cone.position.y = -0.18 * size;
+    cone.castShadow = true;
+    g.add(cone);
+
     // 底部尖岩
-    const key = new THREE.Mesh(makeRock(0.34 * size, 2, 0.14, 1.9), mat(0x262322));
-    key.position.y = -1.28 * size;
+    const key = new THREE.Mesh(makeRock(0.3 * size, 2, 0.14, 1.9), mat(0x262322));
+    key.position.y = -1.75 * size;
     key.castShadow = true;
     g.add(key);
-    // 草地顶盖：扁平有机圆盘微微超出岩石边缘
-    const grass = new THREE.Mesh(makeRock(1.14 * size, 3, 0.05, 0.32), mat(0x4e9a8a));
-    grass.position.y = 0.18 * size;
-    grass.scale.y = 0.55;
+
+    // 层叠岩架：锥体侧面不同高度探出的石板
+    for (const [ly, lr, ls] of [[-0.55, 0.55, 1], [-1.0, 0.38, 0.8], [-0.35, 0.3, 0.6]]) {
+      const ledge = new THREE.Mesh(makeRock(lr * size, 2, 0.08, 0.35), mat(0x2e2a27));
+      ledge.position.set(0.35 * size, ly * size, -0.2 * size);
+      ledge.scale.y = 0.5;
+      ledge.rotation.y = 0.6;
+      ledge.castShadow = true;
+      g.add(ledge);
+    }
+
+    // 草地顶盖：覆盖台地、边缘微微垂下
+    const grass = new THREE.Mesh(makeRock(1.36 * size, 3, 0.04, 0.3), mat(0x4e9a8a));
+    grass.position.y = 0.3 * size;
+    grass.scale.y = 0.5;
     grass.castShadow = true;
     grass.receiveShadow = true;
     g.add(grass);
-    return { group: g, topY: 0.38 * size };
+
+    // 缘石：草缘嵌着的圆润巨石
+    for (const [bx, bz, bs] of [[1.02, 0.3, 0.14], [-0.9, -0.45, 0.11], [0.5, -1.0, 0.1]]) {
+      const boulder = new THREE.Mesh(makeRock(bs * size, 2, 0.12), mat(0x5a534b));
+      boulder.position.set(bx * size, 0.26 * size, bz * size);
+      boulder.castShadow = true;
+      g.add(boulder);
+    }
+
+    // 垂草簇：台地边缘向下的小草锥
+    for (const [tx, tz] of [[1.18, 0.15], [0.75, 1.0], [-0.35, 1.22], [-1.22, -0.2], [0.2, -1.25]]) {
+      const tuft = new THREE.Mesh(new THREE.ConeGeometry(0.05 * size, 0.2 * size, 5), mat(0x44897b));
+      tuft.position.set(tx * size, -0.05 * size, tz * size);
+      tuft.rotation.x = Math.PI;
+      g.add(tuft);
+    }
+
+    return { group: g, topY: 0.42 * size };
   }
 
   // ── 装饰生成器 ──
@@ -246,8 +296,8 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
   const island = new THREE.Group();
   const main = makeIsland(1);
   island.add(main.group);
-  island.scale.setScalar(0.86);
-  island.position.x = 0.55;
+  island.scale.setScalar(0.92);
+  island.position.x = 0.9;
   scene.add(island);
 
   const tree = makeTree(1);
@@ -406,12 +456,12 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
   const ringMat = new THREE.MeshBasicMaterial({ color: 0x6db3a3, transparent: true, opacity: 0.22, side: THREE.DoubleSide });
   const ring1 = new THREE.Mesh(new THREE.TorusGeometry(1.8, 0.009, 8, 100), ringMat);
   ring1.rotation.x = Math.PI / 2.15;
-  ring1.position.set(0.55, 0.38, 0);
+  ring1.position.set(0.9, 0.42, 0);
   scene.add(ring1);
   const ring2 = new THREE.Mesh(new THREE.TorusGeometry(2.25, 0.006, 8, 100), ringMat);
   ring2.rotation.x = Math.PI / 1.85;
   ring2.rotation.y = 0.4;
-  ring2.position.set(0.55, 0.58, 0);
+  ring2.position.set(0.9, 0.62, 0);
   scene.add(ring2);
 
   // ── 小机器人 v3：大头比例 / 耳罩 / 胸口核心 / 挥手 ──
@@ -643,8 +693,8 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
     const eased = 1 - Math.pow(1 - intro, 3);
     const introSet = reduced ? 1 : eased;
     island.position.y = (1 - introSet) * -1.6 + Math.sin(t * 0.8) * 0.07;
-    island.scale.setScalar(0.86 * (0.72 + 0.28 * introSet));
-    camera.position.z = 6.4 + (1 - introSet) * 1.7;
+    island.scale.setScalar(0.92 * (0.72 + 0.28 * introSet));
+    camera.position.z = 6.7 + (1 - introSet) * 1.7;
 
     // 岛自转 + 拖拽惯性
     island.rotation.y += 0.0015 + drag.velY;
@@ -768,7 +818,7 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
     pos.needsUpdate = true;
 
     // 相机视差
-    camTarget.set(pointer.x * 0.5, 1.2 + pointer.y * 0.28, 6.4);
+    camTarget.set(pointer.x * 0.5, 1.2 + pointer.y * 0.28, 6.7);
     camera.position.x = THREE.MathUtils.lerp(camera.position.x, camTarget.x, 0.05);
     camera.position.y = THREE.MathUtils.lerp(camera.position.y, camTarget.y, 0.05);
     camera.position.z = THREE.MathUtils.lerp(camera.position.z, camTarget.z, 0.05);
