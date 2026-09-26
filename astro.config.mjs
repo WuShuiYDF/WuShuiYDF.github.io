@@ -10,7 +10,10 @@ export default defineConfig({
   output: 'static',
   trailingSlash: 'ignore',
   integrations: [sitemap()],
-  vite: { plugins: [tailwindcss()] },
+  vite: {
+    // @ts-expect-error @tailwindcss/vite 自带的 vite 类型与 astro 锁定的 vite 版本不一致，运行时兼容
+    plugins: [tailwindcss()],
+  },
   markdown: {
     shikiConfig: {
       themes: { light: 'vitesse-light', dark: 'vitesse-dark' },
