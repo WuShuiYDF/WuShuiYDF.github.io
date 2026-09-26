@@ -1,0 +1,47 @@
+---
+import { ClientRouter } from 'astro:transitions';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { SITE } from '../config';
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+  width?: 'narrow' | 'wide';
+}
+const { title, description = SITE.description, width = 'narrow' } = Astro.props;
+const fullTitle = title ? `${title} · ${SITE.name}` : `${SITE.name} · ${SITE.subtitle}`;
+---
+
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <script is:inline>
+      (() => {
+        const t = localStorage.getItem('wsydf-theme');
+        if (t) document.documentElement.dataset.theme = t;
+      })();
+    </script>
+    <ClientRouter />
+  </head>
+  <body class="flex min-h-screen flex-col">
+    <Header />
+    <main
+      class:list={[
+        'mx-auto w-full flex-1 px-4 md:px-6',
+        width === 'narrow' ? 'max-w-3xl' : 'max-w-6xl',
+      ]}
+    >
+      <slot />
+    </main>
+    <Footer />
+  </body>
+</html>

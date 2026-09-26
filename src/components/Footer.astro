@@ -1,0 +1,22 @@
+---
+import { SITE } from '../config';
+const year = new Date().getFullYear();
+---
+
+<footer class="mt-16 border-t border-white/5 px-4 py-8 text-center text-sm text-[var(--color-muted)]">
+  <p>
+    <span class="glow-text font-medium">{SITE.motto}</span>
+  </p>
+  <p class="mt-2">
+    © {year}
+    <a
+      href={SITE.github}
+      target="_blank"
+      rel="noopener noreferrer"
+      class="transition-colors hover:text-[var(--color-ink)]"
+    >
+      {SITE.name}
+    </a>
+    · Powered by Astro
+  </p>
+</footer>

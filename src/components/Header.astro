@@ -1,0 +1,72 @@
+---
+import { NAV, SITE } from '../config';
+import ThemeToggle from './ThemeToggle.astro';
+
+const path = Astro.url.pathname;
+const isActive = (href: string) =>
+  href === '/' ? path === '/' : path === href || path.startsWith(href + '/');
+---
+
+<header
+  class="glass noise sticky top-0 z-50 rounded-none border-x-0 border-t-0 px-4 md:px-6"
+>
+  <div class="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4">
+    <a href="/" class="shrink-0 text-lg font-bold tracking-wide">
+      <span class="glow-text">{SITE.name}</span>
+    </a>
+
+    <nav class="hidden items-center gap-1 md:flex" aria-label="主导航">
+      {
+        NAV.map((item) => (
+          <a
+            href={item.href}
+            aria-current={isActive(item.href) ? 'page' : undefined}
+            class:list={[
+              'rounded-full px-3 py-1.5 text-sm transition-colors',
+              isActive(item.href)
+                ? 'bg-[color-mix(in_oklab,var(--color-primary)_22%,transparent)] text-[var(--color-ink)]'
+                : 'text-[var(--color-muted)] hover:text-[var(--color-ink)]',
+            ]}
+          >
+            {item.label}
+          </a>
+        ))
+      }
+    </nav>
+
+    <div class="flex items-center gap-2">
+      <ThemeToggle />
+      <details class="relative md:hidden">
+        <summary
+          class="flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-full border border-white/10 text-[var(--color-ink)]"
+          aria-label="打开菜单"
+        >
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round" />
+          </svg>
+        </summary>
+        <nav
+          class="glass absolute right-0 top-11 z-50 flex w-44 flex-col p-2"
+          aria-label="移动端导航"
+        >
+          {
+            NAV.map((item) => (
+              <a
+                href={item.href}
+                aria-current={isActive(item.href) ? 'page' : undefined}
+                class:list={[
+                  'rounded-lg px-3 py-2 text-sm',
+                  isActive(item.href)
+                    ? 'bg-[color-mix(in_oklab,var(--color-primary)_22%,transparent)] text-[var(--color-ink)]'
+                    : 'text-[var(--color-muted)] hover:text-[var(--color-ink)]',
+                ]}
+              >
+                {item.label}
+              </a>
+            ))
+          }
+        </nav>
+      </details>
+    </div>
+  </div>
+</header>
