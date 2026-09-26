@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #070b14;
+  --color-surface: #0d1322;
+  --color-ink: #e6eaf2;
+  --color-muted: #8b93a7;
+  --color-primary: #7c6cff;
+  --color-accent: #22d3ee;
+  --font-display: "Space Grotesk", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-body: system-ui, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+:root[data-theme="light"] {
+  --color-bg: #f4f6fb;
+  --color-surface: #ffffff;
+  --color-ink: #10141f;
+  --color-muted: #5b6474;
+}
+
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 玻璃卡 */
+.glass {
+  background: color-mix(in oklab, var(--color-surface) 72%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgb(255 255 255 / 0.08);
+  border-radius: 1rem;
+}
+:root[data-theme="light"] .glass { border-color: rgb(15 23 42 / 0.08); }
+
+/* 辉光渐变字 */
+.glow-text {
+  background: linear-gradient(92deg, var(--color-primary) 0%, var(--color-accent) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* 辉光阴影 */
+.glow-ring { box-shadow: 0 0 24px color-mix(in oklab, var(--color-primary) 35%, transparent); }
+
+/* 噪点质感（叠加层，勿挡交互） */
+.noise { position: relative; }
+.noise::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* 滚动淡入：默认隐藏，JS 加 .is-in 后过渡进入 */
+.reveal { opacity: 0; transform: translateY(24px); transition: opacity .7s ease, transform .7s cubic-bezier(.22,1,.36,1); }
+.reveal.is-in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; transition: none; } }
+
+::selection { background: color-mix(in oklab, var(--color-primary) 45%, transparent); }
