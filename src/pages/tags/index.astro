@@ -1,0 +1,33 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import SectionTitle from '../../components/SectionTitle.astro';
+
+const posts = await getCollection('posts', ({ data }) => !data.draft);
+const counts = new Map<string, number>();
+for (const p of posts) {
+  for (const t of p.data.tags) counts.set(t, (counts.get(t) ?? 0) + 1);
+}
+const tags = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+const max = Math.max(1, ...tags.map(([, c]) => c));
+---
+
+<BaseLayout title="标签">
+  <div class="py-12">
+    <SectionTitle title="标签" sub={`共 ${tags.length} 个`} />
+    <div class="mt-8 flex flex-wrap items-baseline gap-x-5 gap-y-3">
+      {
+        tags.map(([tag, count]) => (
+          <a
+            href={`/tags/${tag}/`}
+            class="reveal transition-colors hover:text-[var(--color-primary)]"
+            style={`font-size: ${0.95 + (count / max) * 1.1}rem; font-weight: ${count === max ? 700 : 400};`}
+          >
+            #{tag}
+            <span class="text-xs text-[var(--color-muted)]">{count}</span>
+          </a>
+        ))
+      }
+    </div>
+  </div>
+</BaseLayout>
