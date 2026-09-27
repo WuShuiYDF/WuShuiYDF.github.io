@@ -1,0 +1,37 @@
+name: Notion Sync
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: notion-sync
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # 未配置 secrets 时脚本静默退出
+      - run: node scripts/notion-sync.mjs
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+      - name: Commit & Push
+        run: |
+          git config user.name "WuShuiYDF"
+          git config user.email "wushuiydf@users.noreply.github.io"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "无内容变更"
+          else
+            git commit -m "content: Notion 同步（自动）"
+            git push
+          fi

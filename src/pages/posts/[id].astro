@@ -1,10 +1,22 @@
 ---
+import { readFileSync, existsSync } from 'node:fs';
 import { getCollection, render } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import ReadingProgress from '../../components/ReadingProgress.astro';
 import TOC from '../../components/TOC.astro';
 import Giscus from '../../components/Giscus.astro';
 import 'katex/dist/katex.min.css';
+
+// AI 构建时摘要缓存（scripts/ai-summary.mjs 生成，无缓存时静默跳过）
+function loadAiSummaries(): Record<string, string> {
+  try {
+    if (existsSync(new URL('../../.ai-cache/summaries.json', import.meta.url))) {
+      return JSON.parse(readFileSync(new URL('../../.ai-cache/summaries.json', import.meta.url), 'utf8'));
+    }
+  } catch { /* 忽略 */ }
+  return {};
+}
+const aiSummaries = loadAiSummaries();
 
 export async function getStaticPaths() {
   const posts = (await getCollection('posts', ({ data }) => !data.draft)).sort(
@@ -18,7 +30,9 @@ export async function getStaticPaths() {
 
 const { post, prev, next } = Astro.props;
 const { Content, headings } = await render(post);
-const { title, date, tags, category, summary } = post.data;
+const { title, date, tags, category } = post.data;
+// frontmatter summary 优先，其次构建时 AI 摘要缓存
+const summary = post.data.summary ?? aiSummaries[post.id];
 const dateStr = `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
 const minutes = Math.max(1, Math.round((post.body?.length ?? 0) / 450));
 ---

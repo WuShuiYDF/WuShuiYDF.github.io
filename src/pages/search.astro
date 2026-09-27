@@ -1,0 +1,94 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="搜索" description="全站文章搜索">
+  <div class="py-12">
+    <p class="kicker">Search</p>
+    <h1 class="mt-3 text-3xl font-bold tracking-tight text-[var(--color-ink)]">搜索</h1>
+
+    <div class="mt-8 flex items-center gap-3 rounded-full border border-white/[0.1] bg-[var(--color-surface)] px-5 py-3 transition-colors focus-within:border-[color-mix(in_oklab,var(--color-primary)_60%,transparent)]">
+      <svg class="h-4 w-4 shrink-0 text-[var(--color-muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="7" />
+        <path d="m20 20-3.5-3.5" stroke-linecap="round" />
+      </svg>
+      <input
+        id="search-input"
+        type="search"
+        placeholder="搜标题、摘要、标签、正文…"
+        autocomplete="off"
+        class="w-full bg-transparent text-[0.95rem] text-[var(--color-ink)] outline-none placeholder:text-[var(--color-muted)]"
+      />
+    </div>
+
+    <p id="search-status" class="mt-4 text-sm text-[var(--color-muted)]">输入关键词开始搜索</p>
+    <div id="search-results" class="mt-6 flex flex-col gap-3"></div>
+  </div>
+</BaseLayout>
+
+<script>
+  import Fuse from 'fuse.js';
+
+  interface Doc {
+    title: string;
+    summary: string;
+    tags: string[];
+    category: string;
+    date: string;
+    url: string;
+    body: string;
+  }
+
+  const input = document.getElementById('search-input') as HTMLInputElement | null;
+  const status = document.getElementById('search-status')!;
+  const results = document.getElementById('search-results')!;
+
+  let fuse: Fuse<Doc> | null = null;
+
+  async function load() {
+    try {
+      const docs = await fetch('/search-index.json').then((r) => r.json()) as Doc[];
+      fuse = new Fuse(docs, {
+        keys: [
+          { name: 'title', weight: 3 },
+          { name: 'tags', weight: 2 },
+          { name: 'summary', weight: 1.5 },
+          { name: 'category', weight: 1 },
+          { name: 'body', weight: 0.5 },
+        ],
+        threshold: 0.35,
+        ignoreLocation: true,
+        includeMatches: true,
+      });
+      status.textContent = `已索引 ${docs.length} 篇文章`;
+    } catch {
+      status.textContent = '索引加载失败，请刷新重试';
+    }
+  }
+  load();
+
+  function render(q: string) {
+    if (!fuse) return;
+    if (!q.trim()) {
+      results.innerHTML = '';
+      status.textContent = '输入关键词开始搜索';
+      return;
+    }
+    const hits = fuse.search(q.trim(), { limit: 12 });
+    status.textContent = hits.length ? `${hits.length} 条结果` : '没有找到相关文章';
+    results.innerHTML = hits
+      .map(({ item }) => `
+        <a href="${item.url}" class="glass noise block p-5 transition-transform hover:-translate-y-0.5">
+          <p class="font-mono text-[0.7rem] tracking-[0.08em] text-[var(--color-muted)]">${item.date}${item.category ? ` · ${item.category}` : ''}</p>
+          <p class="mt-1 font-bold text-[var(--color-ink)]">${item.title}</p>
+          ${item.summary ? `<p class="mt-1 line-clamp-2 text-sm text-[var(--color-muted)]">${item.summary}</p>` : ''}
+        </a>`)
+      .join('');
+  }
+
+  let timer: ReturnType<typeof setTimeout>;
+  input?.addEventListener('input', () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => render(input.value), 180);
+  });
+</script>

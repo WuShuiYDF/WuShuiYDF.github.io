@@ -21,6 +21,14 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # 构建时 AI 摘要（未配置 AI_API_KEY 时脚本自动跳过）
+      - name: AI summaries
+        run: node scripts/ai-summary.mjs
+        env:
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
+          AI_MODEL: ${{ secrets.AI_MODEL }}
+        continue-on-error: true
       - run: npm run build
       # 推 dist 到 gh-pages 分支；GitHub Pages（legacy 模式）监听该分支自动发布。
       # 不走 deploy-pages artifact API——该服务在本仓库曾出现 409 孤儿产物异常。

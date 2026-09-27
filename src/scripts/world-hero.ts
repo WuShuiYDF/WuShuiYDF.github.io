@@ -9,6 +9,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { navigate } from 'astro:transitions/client';
 
 export interface WorldHeroHandle {
   dispose: () => void;
@@ -135,12 +136,14 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
     composer.addPass(new UnrealBloomPass(new THREE.Vector2(width, height), 0.45, 0.75, 0.78));
     composer.addPass(new OutputPass());
   }
+  let starMatRef: THREE.PointsMaterial | null = null;
   const fogObserver = new MutationObserver(() => {
     const light = document.documentElement.dataset.theme === 'light';
     fogColor.set(light ? 0xfaf7f1 : 0x262322);
     skyMat.uniforms.cTop.value.set(light ? 0xffffff : 0x1a1714);
     skyMat.uniforms.cBottom.value.set(light ? 0xe9e2d5 : 0x453b33);
     grid.material.needsUpdate = true;
+    if (starMatRef) starMatRef.opacity = light ? 0 : 0.85;
   });
   fogObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
@@ -221,7 +224,7 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
     g.add(key);
 
     // 层叠岩架：锥体侧面不同高度探出的石板
-    for (const [ly, lr, ls] of [[-0.55, 0.55, 1], [-1.0, 0.38, 0.8], [-0.35, 0.3, 0.6]]) {
+    for (const [ly, lr] of [[-0.55, 0.55], [-1.0, 0.38], [-0.35, 0.3]] as const) {
       const ledge = new THREE.Mesh(makeRock(lr * size, 2, 0.08, 0.35), mat(0x2e2a27));
       ledge.position.set(0.35 * size, ly * size, -0.2 * size);
       ledge.scale.y = 0.5;
@@ -255,6 +258,123 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
     }
 
     return { group: g, topY: 0.42 * size };
+  }
+
+  // ── 建筑生成器：五大建筑 = 导航入口（文章馆/相册屋/友链亭/归档塔/AI 小屋） ──
+  const clickTargets: THREE.Group[] = [];
+
+  function makeBuilding(
+    type: 'hall' | 'house' | 'pavilion' | 'tower' | 'dome',
+    size: number,
+    name: string,
+    href: string,
+  ): THREE.Group {
+    const b = new THREE.Group();
+    b.userData = { href, name, baseScale: 1 };
+
+    const wallMat = mat(0x4a423a, 0.85);
+    const roofMat = mat(0x44897b, 0.8);
+    const trimMat = mat(0x5a4a3a, 0.9);
+    const doorMat = glowMat(0x6db3a3, 1.6);
+
+    if (type === 'hall') {
+      const base = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.34, 0.5, 2, 2, 2), wallMat);
+      base.position.y = 0.17;
+      b.add(base);
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.3, 4), roofMat);
+      roof.position.y = 0.49;
+      roof.rotation.y = Math.PI / 4;
+      roof.castShadow = true;
+      b.add(roof);
+      const door = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.22, 0.02), doorMat);
+      door.position.set(0, 0.11, 0.26);
+      b.add(door);
+      for (const wx of [-0.2, 0.2]) {
+        const win = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.09, 0.02), glowMat(0xead9bd, 1.1));
+        win.position.set(wx, 0.2, 0.26);
+        b.add(win);
+      }
+      const ridge = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.05, 0.1), trimMat);
+      ridge.position.y = 0.66;
+      b.add(ridge);
+    } else if (type === 'house') {
+      const base = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.26, 0.36, 2, 2, 2), wallMat);
+      base.position.y = 0.13;
+      b.add(base);
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(0.36, 0.24, 4), roofMat);
+      roof.position.y = 0.38;
+      roof.rotation.y = Math.PI / 4;
+      roof.castShadow = true;
+      b.add(roof);
+      const frame = new THREE.Mesh(new THREE.TorusGeometry(0.07, 0.012, 8, 24), trimMat);
+      frame.position.set(0, 0.15, 0.19);
+      b.add(frame);
+      const photo = new THREE.Mesh(new THREE.CircleGeometry(0.06, 20), glowMat(0xead9bd, 0.9));
+      photo.position.set(0, 0.15, 0.192);
+      b.add(photo);
+    } else if (type === 'pavilion') {
+      const floor = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.27, 0.05, 10), trimMat);
+      floor.position.y = 0.03;
+      b.add(floor);
+      for (const [px, pz] of [[-0.15, -0.15], [0.15, -0.15], [-0.15, 0.15], [0.15, 0.15]]) {
+        const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.024, 0.26, 8), wallMat);
+        pillar.position.set(px, 0.18, pz);
+        b.add(pillar);
+      }
+      const cap = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.16, 8), roofMat);
+      cap.position.y = 0.38;
+      cap.castShadow = true;
+      b.add(cap);
+      const finial = new THREE.Mesh(new THREE.SphereGeometry(0.03, 10, 8), glowMat(0x6db3a3, 1.8));
+      finial.position.y = 0.48;
+      b.add(finial);
+    } else if (type === 'tower') {
+      const tiers: [number, number][] = [[0.19, 0.24], [0.15, 0.2], [0.11, 0.16]];
+      let ty = 0;
+      for (const [tr, th] of tiers) {
+        const tier = new THREE.Mesh(new THREE.CylinderGeometry(tr, tr * 1.18, th, 9), wallMat);
+        ty += th / 2;
+        tier.position.y = ty;
+        tier.castShadow = true;
+        b.add(tier);
+        const eave = new THREE.Mesh(new THREE.CylinderGeometry(tr * 1.45, tr * 1.3, 0.035, 9), roofMat);
+        ty += th / 2 + 0.018;
+        eave.position.y = ty;
+        eave.castShadow = true;
+        b.add(eave);
+        ty += 0.018;
+      }
+      const spire = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.14, 8), glowMat(0x6db3a3, 1.6));
+      spire.position.y = ty + 0.07;
+      b.add(spire);
+    } else {
+      const dome = new THREE.Mesh(
+        new THREE.SphereGeometry(0.22, 22, 14, 0, Math.PI * 2, 0, Math.PI / 2),
+        new THREE.MeshPhysicalMaterial({
+          color: 0xd8d0c4, roughness: 0.35, metalness: 0.08,
+          clearcoat: 0.55, clearcoatRoughness: 0.3,
+        }),
+      );
+      dome.position.y = 0.02;
+      dome.castShadow = true;
+      b.add(dome);
+      const door = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.14, 0.02), doorMat);
+      door.position.set(0, 0.07, 0.21);
+      b.add(door);
+      const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.01, 0.16, 6), darkMat);
+      mast.position.y = 0.26;
+      b.add(mast);
+      const dish = new THREE.Mesh(new THREE.SphereGeometry(0.055, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2.6), trimMat);
+      dish.position.y = 0.33;
+      dish.rotation.x = Math.PI / 1.6;
+      b.add(dish);
+    }
+
+    b.traverse((o) => {
+      if ((o as THREE.Mesh).isMesh) { o.castShadow = true; }
+    });
+    b.scale.setScalar(size);
+    return b;
   }
 
   // ── 装饰生成器 ──
@@ -304,9 +424,10 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
   tree.position.set(-0.52, main.topY - 0.05, 0.18);
   island.add(tree);
   const tree2 = makeTree(0.55);
-  tree2.position.set(0.16, main.topY - 0.04, -0.55);
+  tree2.position.set(-0.18, main.topY - 0.04, -0.78);
   tree2.rotation.y = 1.2;
   island.add(tree2);
+
 
   // 草簇
   for (const [x, z, s] of [[0.4, 0.5, 1], [-0.15, 0.62, 0.8], [0.62, -0.28, 1.2], [-0.6, -0.32, 0.9], [0.1, 0.66, 0.7], [-0.36, 0.4, 0.6]]) {
@@ -375,7 +496,7 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
     blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true,
   }));
   island.add(waterfall);
-  addGlow(island, 0x6db3a3, 0.8, [0.75, -1.35, -0.52], 0.3);
+  addGlow(island, 0x6db3a3, 0.8, [-0.12, -1.3, 1.25], 0.3);
 
   // 发光水晶簇（岛侧，嵌入岩体）
   for (const [x, y, z, s, rz] of [[-0.88, -0.3, 0.3, 1, 0.5], [-0.74, -0.62, -0.2, 0.7, -0.4], [0.95, -0.42, 0.05, 0.85, 0.9]]) {
@@ -398,7 +519,7 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
   pondMat.roughness = 0.12;
   pondMat.metalness = 0.5;
   const pond = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.025, 24), pondMat);
-  pond.position.set(0.45, main.topY + 0.03, -0.3);
+  pond.position.set(-0.05, main.topY + 0.03, 0.88);
   island.add(pond);
 
   // 岛下悬浮碎岩
@@ -436,6 +557,33 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
   const satCrystal = makeCrystal(0.6);
   satCrystal.position.y = sat2.topY + 0.05;
   sat2.group.add(satCrystal);
+  // 五大建筑（点击即导航）
+  const hall = makeBuilding('hall', 1, '文章馆 · 全部文章', '/posts/');
+  hall.position.set(-0.52, main.topY - 0.03, -0.38);
+  hall.rotation.y = 0.5;
+  island.add(hall);
+  clickTargets.push(hall);
+
+  const house = makeBuilding('house', 1, '相册屋 · 图集', '/gallery/');
+  house.position.set(0.78, main.topY - 0.03, -0.42);
+  house.rotation.y = -0.4;
+  island.add(house);
+  clickTargets.push(house);
+
+  const pavilion = makeBuilding('pavilion', 1, '友链亭 · 朋友们', '/links/');
+  pavilion.position.set(0.92, main.topY - 0.03, 0.35);
+  island.add(pavilion);
+  clickTargets.push(pavilion);
+
+  const tower = makeBuilding('tower', 0.85, '归档塔 · 时间轴', '/archives/');
+  tower.position.y = sat1.topY - 0.02;
+  sat1.group.add(tower);
+  clickTargets.push(tower);
+
+  const aiHut = makeBuilding('dome', 0.8, 'AI 小屋 · 一凡AI', '/ai/');
+  aiHut.position.y = sat2.topY - 0.02;
+  sat2.group.add(aiHut);
+  clickTargets.push(aiHut);
 
   // ── 云 ×4（会漂的棉花云） ──
   const clouds = new THREE.Group();
@@ -600,6 +748,25 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
     a.fadeIn(0.15).play();
   }
 
+  // 夜空星点（暗色主题渐显，亮色隐藏）
+  const STAR_COUNT = isMobile ? 130 : 260;
+  const starPos = new Float32Array(STAR_COUNT * 3);
+  for (let i = 0; i < STAR_COUNT; i++) {
+    const r = 24 + Math.random() * 10;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(Math.random() * 0.9 + 0.05);
+    starPos.set([r * Math.sin(phi) * Math.cos(theta), Math.abs(r * Math.cos(phi)) * 0.8 - 2, r * Math.sin(phi) * Math.sin(theta)], i * 3);
+  }
+  const starGeo = new THREE.BufferGeometry();
+  starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+  const starMat = new THREE.PointsMaterial({
+    color: 0xd8e6e0, size: 0.09, transparent: true, opacity: 0,
+    depthWrite: false, sizeAttenuation: true, fog: false,
+  });
+  const stars = new THREE.Points(starGeo, starMat);
+  scene.add(stars);
+  starMatRef = starMat;
+
   // ── 萤火粒子 ──
   const COUNT = isMobile ? 80 : 170;
   const positions = new Float32Array(COUNT * 3);
@@ -623,10 +790,60 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
   }));
   scene.add(particles);
 
+  // ── 射线拾取：建筑悬停/点击 + 悬浮标签 ──
+  const raycaster = new THREE.Raycaster();
+  const ndc = new THREE.Vector2();
+  let hovered: THREE.Group | null = null;
+
+  const tooltip = document.createElement('div');
+  tooltip.style.cssText = [
+    'position:absolute', 'pointer-events:none', 'z-index:20',
+    'padding:5px 12px', 'border-radius:999px', 'white-space:nowrap',
+    'font-family:ui-monospace,monospace', 'font-size:12px', 'letter-spacing:0.08em',
+    'color:#eaf5f1', 'background:rgba(30,28,27,0.85)', 'backdrop-filter:blur(8px)',
+    'border:1px solid rgba(110,179,163,0.5)', 'opacity:0', 'transition:opacity .15s',
+    'transform:translate(-50%,-130%)',
+  ].join(';');
+  container.appendChild(tooltip);
+
+  const projV = new THREE.Vector3();
+  function pickBuilding(e: PointerEvent): THREE.Group | null {
+    const rect = renderer.domElement.getBoundingClientRect();
+    ndc.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
+    raycaster.setFromCamera(ndc, camera);
+    const hits = raycaster.intersectObjects(clickTargets, true);
+    if (hits.length === 0) return null;
+    let o: THREE.Object3D | null = hits[0].object;
+    while (o && !o.userData.href) o = o.parent;
+    return o as THREE.Group | null;
+  }
+  function updateTooltip(e: PointerEvent | null, b: THREE.Group | null) {
+    if (!b || !e) { tooltip.style.opacity = '0'; return; }
+    b.getWorldPosition(projV);
+    projV.y += 0.55 * b.scale.y;
+    projV.project(camera);
+    const rect = renderer.domElement.getBoundingClientRect();
+    tooltip.textContent = String(b.userData.name);
+    tooltip.style.left = `${((projV.x + 1) / 2) * rect.width}px`;
+    tooltip.style.top = `${((-projV.y + 1) / 2) * rect.height}px`;
+    tooltip.style.opacity = '1';
+  }
+  function setHover(b: THREE.Group | null) {
+    if (hovered === b) return;
+    hovered = b;
+    renderer.domElement.style.cursor = b ? 'pointer' : 'grab';
+    if (!b) tooltip.style.opacity = '0';
+  }
+
   // ── 交互 ──
   const pointer = { x: 0, y: 0 };
   const drag = { active: false, moved: 0, lastX: 0, lastY: 0, velY: 0, rotX: 0 };
   const onPointerMove = (e: PointerEvent) => {
+    if (!isMobile && !drag.active) {
+      const hit = pickBuilding(e);
+      setHover(hit);
+      updateTooltip(e, hit);
+    }
     if (drag.active && e.pointerType !== 'touch') {
       const dx = e.clientX - drag.lastX;
       drag.velY += dx * 0.004;
@@ -649,13 +866,18 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
     drag.lastY = e.clientY;
     renderer.domElement.style.cursor = 'grabbing';
   };
-  const onPointerUp = () => {
+  const onPointerUp = (e: PointerEvent) => {
     if (drag.active && drag.moved < 6) {
-      jumpStart = performance.now() / 1000;
-      playOnce('Jump'); // 真模型：播放骨骼跳跃动画
+      const hit = pickBuilding(e);
+      if (hit) {
+        navigate(String(hit.userData.href)); // 点建筑 → 无缝跳转对应页面
+      } else {
+        jumpStart = performance.now() / 1000;
+        playOnce('Jump'); // 点空白 → 机器人跳一下
+      }
     }
     drag.active = false;
-    renderer.domElement.style.cursor = 'grab';
+    renderer.domElement.style.cursor = hovered ? 'pointer' : 'grab';
   };
   if (!isMobile && !reduced) {
     renderer.domElement.addEventListener('pointermove', onPointerMove);
@@ -741,9 +963,9 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
       const fall = p * 2.6;
       dpos.setXYZ(
         i,
-        0.66 + p * 0.35 + sd.sway * Math.sin(t * 2 + sd.phase * 9),
+        -0.12 + sd.sway * Math.sin(t * 2 + sd.phase * 9) + p * 0.06,
         main.topY - 0.05 - fall,
-        -0.42 - p * 0.18,
+        1.08 + p * 0.3,
       );
     }
     dpos.needsUpdate = true;
@@ -807,6 +1029,16 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
         setTimeout(() => (eye.scale.y = 1), 130);
       });
     }
+
+    // 悬停建筑轻微放大
+    for (const b of clickTargets) {
+      const target = b === hovered ? 1.07 : 1;
+      b.scale.setScalar(THREE.MathUtils.lerp(b.scale.x, b.userData.baseScale * target, 0.12));
+    }
+
+    // 星空缓转
+    stars.rotation.y += 0.00012;
+    starMat.opacity = document.documentElement.dataset.theme === 'light' ? 0 : 0.7 + Math.sin(t * 0.7) * 0.12;
 
     // 粒子漂移
     const pos = pGeo.getAttribute('position') as THREE.BufferAttribute;
@@ -879,6 +1111,7 @@ export function initWorldHero(container: HTMLElement): WorldHeroHandle | null {
       pmrem.dispose();
       renderer.dispose();
       renderer.domElement.remove();
+      tooltip.remove();
     },
   };
 }
